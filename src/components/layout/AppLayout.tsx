@@ -1,13 +1,21 @@
 import { Outlet } from "react-router-dom";
-import { TopNav } from "./TopNav";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "./AppSidebar";
 
 export function AppLayout() {
   return (
-    <div className="min-h-screen bg-background">
-      <TopNav />
-      <main className="p-4 lg:p-6 max-w-[1400px] mx-auto">
-        <Outlet />
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <header className="sticky top-0 z-50 h-12 flex items-center border-b bg-background/95 backdrop-blur px-4">
+            <SidebarTrigger />
+          </header>
+          <main className="flex-1 p-4 lg:p-6 max-w-[1400px] w-full mx-auto">
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
