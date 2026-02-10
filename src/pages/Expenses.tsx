@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,17 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -39,9 +28,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
 import { formatINR, formatDate } from "@/lib/format";
 import { Plus, Trash2, X } from "lucide-react";
+import { SelectWithAdd } from "@/components/SelectWithAdd";
+import { swalSuccess, swalError, swalDelete } from "@/lib/swal";
+import { useRealtimeTable } from "@/hooks/use-realtime-query";
 
 const categories = ["Fuel", "Maintenance", "Toll", "Insurance", "Salary", "Office", "Other"];
 
@@ -51,6 +42,8 @@ export default function Expenses() {
   const [category, setCategory] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  useRealtimeTable("vehicles", ["vehicles-active"]);
 
   const [form, setForm] = useState({
     expense_date: new Date().toISOString().split("T")[0],
@@ -92,11 +85,11 @@ export default function Expenses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      toast({ title: "Expense added" });
+      swalSuccess("Expense Added");
       setDialogOpen(false);
       setForm({ expense_date: new Date().toISOString().split("T")[0], category: "Fuel", amount: 0, description: "", notes: "", vehicle_id: "" });
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => swalError("Error", err.message),
   });
 
   const deleteMutation = useMutation({
@@ -106,9 +99,14 @@ export default function Expenses() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
-      toast({ title: "Expense deleted" });
+      swalSuccess("Expense Deleted");
     },
   });
+
+  const handleDelete = async (id: string) => {
+    const result = await swalDelete("this expense");
+    if (result.isConfirmed) deleteMutation.mutate(id);
+  };
 
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
 
@@ -137,10 +135,20 @@ export default function Expenses() {
                 <div className="space-y-2"><Label>Amount (₹)</Label><Input type="number" value={form.amount || ""} onChange={(e) => setForm((p) => ({ ...p, amount: Number(e.target.value) }))} /></div>
                 <div className="space-y-2">
                   <Label>Vehicle</Label>
-                  <Select value={form.vehicle_id} onValueChange={(v) => setForm((p) => ({ ...p, vehicle_id: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Optional" /></SelectTrigger>
-                    <SelectContent>{vehicles.map((v) => (<SelectItem key={v.id} value={v.id}>{v.vehicle_number}</SelectItem>))}</SelectContent>
-                  </Select>
+                  <SelectWithAdd
+                    value={form.vehicle_id}
+                    onValueChange={(v) => setForm((p) => ({ ...p, vehicle_id: v }))}
+                    placeholder="Optional"
+                    items={vehicles.map((v) => ({ id: v.id, label: v.vehicle_number }))}
+                    tableName="vehicles"
+                    addTitle="Vehicle"
+                    addFields={[
+                      { key: "vehicle_number", label: "Vehicle Number", required: true },
+                      { key: "vehicle_type", label: "Type" },
+                      { key: "owner_name", label: "Owner" },
+                    ]}
+                    queryKeys={["vehicles-active"]}
+                  />
                 </div>
               </div>
               <div className="space-y-2"><Label>Description</Label><Input value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} /></div>
@@ -202,21 +210,9 @@ export default function Expenses() {
                     <TableCell>{e.vehicles?.vehicle_number || "—"}</TableCell>
                     <TableCell className="text-right font-medium">{formatINR(Number(e.amount))}</TableCell>
                     <TableCell>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this expense?</AlertDialogTitle>
-                            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteMutation.mutate(e.id)}>Delete</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(e.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

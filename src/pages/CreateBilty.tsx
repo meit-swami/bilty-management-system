@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,13 +10,6 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -24,9 +17,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
 import { formatINR } from "@/lib/format";
 import { Plus, Trash2, Save, X } from "lucide-react";
+import { SelectWithAdd } from "@/components/SelectWithAdd";
+import { swalSuccess, swalError, swalConfirm } from "@/lib/swal";
+import { useRealtimeTable } from "@/hooks/use-realtime-query";
 
 interface GoodsItem {
   id: string;
@@ -49,6 +44,11 @@ const emptyItem = (): GoodsItem => ({
 export default function CreateBilty() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Realtime subscriptions for master data
+  useRealtimeTable("vehicles", ["vehicles-active"]);
+  useRealtimeTable("drivers", ["drivers-active"]);
+  useRealtimeTable("parties", ["parties-active"]);
 
   // Basic info
   const [manualNumber, setManualNumber] = useState(false);
@@ -123,7 +123,6 @@ export default function CreateBilty() {
     },
   });
 
-  // Auto-generate bilty number
   useEffect(() => {
     if (!manualNumber && settings) {
       const prefix = settings.bilty_prefix || "BL";
@@ -132,14 +131,12 @@ export default function CreateBilty() {
     }
   }, [manualNumber, settings]);
 
-  // Vehicle selection handler
   const handleVehicleSelect = (id: string) => {
     setVehicleId(id);
     const v = vehicles.find((v) => v.id === id);
     if (v) setVehicleNumber(v.vehicle_number);
   };
 
-  // Driver selection handler
   const handleDriverSelect = (id: string) => {
     setDriverId(id);
     const d = drivers.find((d) => d.id === id);
@@ -149,7 +146,6 @@ export default function CreateBilty() {
     }
   };
 
-  // Party selection handlers
   const handleConsignorSelect = (id: string) => {
     setConsignorId(id);
     const p = parties.find((p) => p.id === id);
@@ -172,7 +168,6 @@ export default function CreateBilty() {
     }
   };
 
-  // Goods item handlers
   const updateItem = (id: string, field: keyof GoodsItem, value: string | number) => {
     setItems((prev) =>
       prev.map((item) => {
@@ -192,25 +187,18 @@ export default function CreateBilty() {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // Computed values
   const totalQuantity = items.reduce((s, i) => s + Number(i.quantity), 0);
   const totalWeight = items.reduce((s, i) => s + Number(i.weight), 0);
   const totalAmount =
-    Number(freightAmount) +
-    Number(loadingCharges) +
-    Number(unloadingCharges) +
-    Number(weightCharges) +
-    Number(otherCharges);
+    Number(freightAmount) + Number(loadingCharges) + Number(unloadingCharges) +
+    Number(weightCharges) + Number(otherCharges);
   const balanceDue = totalAmount - Number(advancePaid);
 
-  // Save mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Validate
       if (!biltyNumber.trim()) throw new Error("Bilty number is required");
       if (!biltyDate) throw new Error("Bilty date is required");
 
-      // GSTIN validation (15-char alphanumeric)
       const gstinRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
       if (consignorGstin && !gstinRegex.test(consignorGstin.toUpperCase())) {
         throw new Error("Invalid Consignor GSTIN format");
@@ -219,7 +207,6 @@ export default function CreateBilty() {
         throw new Error("Invalid Consignee GSTIN format");
       }
 
-      // Insert bilty
       const { data: bilty, error: biltyError } = await supabase
         .from("bilties")
         .insert({
@@ -260,7 +247,6 @@ export default function CreateBilty() {
 
       if (biltyError) throw biltyError;
 
-      // Insert items
       const validItems = items.filter((i) => i.description.trim());
       if (validItems.length > 0) {
         const { error: itemsError } = await supabase.from("bilty_items").insert(
@@ -276,7 +262,6 @@ export default function CreateBilty() {
         if (itemsError) throw itemsError;
       }
 
-      // Increment bilty number
       if (!manualNumber && settings) {
         await supabase
           .from("company_settings")
@@ -289,13 +274,23 @@ export default function CreateBilty() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bilties"] });
       queryClient.invalidateQueries({ queryKey: ["company-settings"] });
-      toast({ title: "Bilty created successfully" });
+      swalSuccess("Bilty Created", `Bilty ${biltyNumber} has been saved successfully.`);
       navigate("/bilties");
     },
     onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      swalError("Error Creating Bilty", err.message);
     },
   });
+
+  const handleSave = async () => {
+    const result = await swalConfirm("Save Bilty?", `Create bilty ${biltyNumber}?`);
+    if (result.isConfirmed) saveMutation.mutate();
+  };
+
+  const handleCancel = async () => {
+    const result = await swalConfirm("Discard Changes?", "All unsaved changes will be lost.");
+    if (result.isConfirmed) navigate("/bilties");
+  };
 
   const consignors = parties.filter((p) => p.party_type === "consignor" || p.party_type === "both");
   const consignees = parties.filter((p) => p.party_type === "consignee" || p.party_type === "both");
@@ -305,10 +300,10 @@ export default function CreateBilty() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Create Bilty</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/bilties")}>
+          <Button variant="outline" onClick={handleCancel}>
             <X className="h-4 w-4 mr-1" /> Cancel
           </Button>
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <Button onClick={handleSave} disabled={saveMutation.isPending}>
             <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? "Saving..." : "Save Bilty"}
           </Button>
         </div>
@@ -342,25 +337,37 @@ export default function CreateBilty() {
             </div>
             <div className="space-y-2">
               <Label>Vehicle</Label>
-              <Select value={vehicleId} onValueChange={handleVehicleSelect}>
-                <SelectTrigger><SelectValue placeholder="Select vehicle" /></SelectTrigger>
-                <SelectContent>
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>{v.vehicle_number}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelectWithAdd
+                value={vehicleId}
+                onValueChange={handleVehicleSelect}
+                placeholder="Select vehicle"
+                items={vehicles.map((v) => ({ id: v.id, label: v.vehicle_number }))}
+                tableName="vehicles"
+                addTitle="Vehicle"
+                addFields={[
+                  { key: "vehicle_number", label: "Vehicle Number", required: true },
+                  { key: "vehicle_type", label: "Type" },
+                  { key: "owner_name", label: "Owner Name" },
+                ]}
+                queryKeys={["vehicles-active"]}
+              />
             </div>
             <div className="space-y-2">
               <Label>Driver</Label>
-              <Select value={driverId} onValueChange={handleDriverSelect}>
-                <SelectTrigger><SelectValue placeholder="Select driver" /></SelectTrigger>
-                <SelectContent>
-                  {drivers.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelectWithAdd
+                value={driverId}
+                onValueChange={handleDriverSelect}
+                placeholder="Select driver"
+                items={drivers.map((d) => ({ id: d.id, label: d.name }))}
+                tableName="drivers"
+                addTitle="Driver"
+                addFields={[
+                  { key: "name", label: "Name", required: true },
+                  { key: "license_number", label: "License Number" },
+                  { key: "mobile", label: "Mobile" },
+                ]}
+                queryKeys={["drivers-active"]}
+              />
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -388,7 +395,6 @@ export default function CreateBilty() {
 
       {/* Party Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Consignor */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Consignor (Sender)</CardTitle>
@@ -396,14 +402,28 @@ export default function CreateBilty() {
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <Label>Select Party</Label>
-              <Select value={consignorId} onValueChange={handleConsignorSelect}>
-                <SelectTrigger><SelectValue placeholder="Select or enter manually" /></SelectTrigger>
-                <SelectContent>
-                  {consignors.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelectWithAdd
+                value={consignorId}
+                onValueChange={handleConsignorSelect}
+                placeholder="Select or enter manually"
+                items={consignors.map((p) => ({ id: p.id, label: p.name }))}
+                tableName="parties"
+                addTitle="Consignor"
+                addFields={[
+                  { key: "name", label: "Party Name", required: true },
+                  { key: "phone", label: "Phone" },
+                  { key: "gstin", label: "GSTIN" },
+                  { key: "city", label: "City" },
+                ]}
+                queryKeys={["parties-active"]}
+                onAdded={(id) => {
+                  // Auto-insert party_type consignor
+                  supabase.from("parties").update({ party_type: "consignor" }).eq("id", id).then(() => {
+                    queryClient.invalidateQueries({ queryKey: ["parties-active"] });
+                  });
+                  handleConsignorSelect(id);
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Name</Label>
@@ -426,7 +446,6 @@ export default function CreateBilty() {
           </CardContent>
         </Card>
 
-        {/* Consignee */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Consignee (Receiver)</CardTitle>
@@ -434,14 +453,27 @@ export default function CreateBilty() {
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <Label>Select Party</Label>
-              <Select value={consigneeId} onValueChange={handleConsigneeSelect}>
-                <SelectTrigger><SelectValue placeholder="Select or enter manually" /></SelectTrigger>
-                <SelectContent>
-                  {consignees.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SelectWithAdd
+                value={consigneeId}
+                onValueChange={handleConsigneeSelect}
+                placeholder="Select or enter manually"
+                items={consignees.map((p) => ({ id: p.id, label: p.name }))}
+                tableName="parties"
+                addTitle="Consignee"
+                addFields={[
+                  { key: "name", label: "Party Name", required: true },
+                  { key: "phone", label: "Phone" },
+                  { key: "gstin", label: "GSTIN" },
+                  { key: "city", label: "City" },
+                ]}
+                queryKeys={["parties-active"]}
+                onAdded={(id) => {
+                  supabase.from("parties").update({ party_type: "consignee" }).eq("id", id).then(() => {
+                    queryClient.invalidateQueries({ queryKey: ["parties-active"] });
+                  });
+                  handleConsigneeSelect(id);
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Name</Label>
@@ -489,35 +521,16 @@ export default function CreateBilty() {
               {items.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell>
-                    <Input
-                      value={item.description}
-                      onChange={(e) => updateItem(item.id, "description", e.target.value)}
-                      placeholder="Item description"
-                    />
+                    <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Item description" />
                   </TableCell>
                   <TableCell>
-                    <Input
-                      type="number"
-                      value={item.quantity || ""}
-                      onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))}
-                      className="w-20"
-                    />
+                    <Input type="number" value={item.quantity || ""} onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))} className="w-20" />
                   </TableCell>
                   <TableCell>
-                    <Input
-                      type="number"
-                      value={item.weight || ""}
-                      onChange={(e) => updateItem(item.id, "weight", Number(e.target.value))}
-                      className="w-24"
-                    />
+                    <Input type="number" value={item.weight || ""} onChange={(e) => updateItem(item.id, "weight", Number(e.target.value))} className="w-24" />
                   </TableCell>
                   <TableCell>
-                    <Input
-                      type="number"
-                      value={item.rate || ""}
-                      onChange={(e) => updateItem(item.id, "rate", Number(e.target.value))}
-                      className="w-24"
-                    />
+                    <Input type="number" value={item.rate || ""} onChange={(e) => updateItem(item.id, "rate", Number(e.target.value))} className="w-24" />
                   </TableCell>
                   <TableCell className="font-medium">{formatINR(item.amount)}</TableCell>
                   <TableCell>
@@ -547,41 +560,17 @@ export default function CreateBilty() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="space-y-2">
-              <Label>Freight</Label>
-              <Input type="number" value={freightAmount || ""} onChange={(e) => setFreightAmount(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Loading</Label>
-              <Input type="number" value={loadingCharges || ""} onChange={(e) => setLoadingCharges(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Unloading</Label>
-              <Input type="number" value={unloadingCharges || ""} onChange={(e) => setUnloadingCharges(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Weight Charges</Label>
-              <Input type="number" value={weightCharges || ""} onChange={(e) => setWeightCharges(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Other</Label>
-              <Input type="number" value={otherCharges || ""} onChange={(e) => setOtherCharges(Number(e.target.value))} />
-            </div>
-            <div className="space-y-2">
-              <Label>Advance Paid</Label>
-              <Input type="number" value={advancePaid || ""} onChange={(e) => setAdvancePaid(Number(e.target.value))} />
-            </div>
+            <div className="space-y-2"><Label>Freight</Label><Input type="number" value={freightAmount || ""} onChange={(e) => setFreightAmount(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Loading</Label><Input type="number" value={loadingCharges || ""} onChange={(e) => setLoadingCharges(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Unloading</Label><Input type="number" value={unloadingCharges || ""} onChange={(e) => setUnloadingCharges(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Weight Charges</Label><Input type="number" value={weightCharges || ""} onChange={(e) => setWeightCharges(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Other</Label><Input type="number" value={otherCharges || ""} onChange={(e) => setOtherCharges(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Advance Paid</Label><Input type="number" value={advancePaid || ""} onChange={(e) => setAdvancePaid(Number(e.target.value))} /></div>
           </div>
           <Separator className="my-4" />
           <div className="flex justify-end gap-8 text-sm">
-            <div>
-              <span className="text-muted-foreground">Total Amount:</span>{" "}
-              <span className="font-bold text-lg">{formatINR(totalAmount)}</span>
-            </div>
-            <div>
-              <span className="text-muted-foreground">Balance Due:</span>{" "}
-              <span className="font-bold text-lg text-destructive">{formatINR(balanceDue)}</span>
-            </div>
+            <div><span className="text-muted-foreground">Total Amount:</span> <span className="font-bold text-lg">{formatINR(totalAmount)}</span></div>
+            <div><span className="text-muted-foreground">Balance Due:</span> <span className="font-bold text-lg text-destructive">{formatINR(balanceDue)}</span></div>
           </div>
         </CardContent>
       </Card>

@@ -15,17 +15,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Table,
   TableBody,
   TableCell,
@@ -33,10 +22,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { swalSuccess, swalError, swalDelete } from "@/lib/swal";
+import { useRealtimeTable } from "@/hooks/use-realtime-query";
 
-// Generic master data CRUD component
 function MasterTab<T extends Record<string, any>>({
   tableName,
   columns,
@@ -50,6 +39,8 @@ function MasterTab<T extends Record<string, any>>({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
+
+  useRealtimeTable(tableName, [tableName]);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: [tableName],
@@ -73,12 +64,12 @@ function MasterTab<T extends Record<string, any>>({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [tableName] });
-      toast({ title: editId ? "Updated" : "Added" });
+      swalSuccess(editId ? "Updated Successfully" : "Added Successfully");
       setDialogOpen(false);
       setEditId(null);
       setForm({});
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => swalError("Error", err.message),
   });
 
   const deleteMutation = useMutation({
@@ -88,9 +79,14 @@ function MasterTab<T extends Record<string, any>>({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [tableName] });
-      toast({ title: "Deleted" });
+      swalSuccess("Deleted Successfully");
     },
   });
+
+  const handleDelete = async (id: string) => {
+    const result = await swalDelete("this item");
+    if (result.isConfirmed) deleteMutation.mutate(id);
+  };
 
   const openEdit = (item: any) => {
     setEditId(item.id);
@@ -165,21 +161,7 @@ function MasterTab<T extends Record<string, any>>({
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(item)}><Pencil className="h-4 w-4" /></Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete this item?</AlertDialogTitle>
-                              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteMutation.mutate(item.id)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
