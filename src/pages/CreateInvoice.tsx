@@ -23,13 +23,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { toast } from "@/hooks/use-toast";
 import { formatINR, formatDate } from "@/lib/format";
 import { Save, X } from "lucide-react";
+import { SelectWithAdd } from "@/components/SelectWithAdd";
+import { swalSuccess, swalError, swalConfirm } from "@/lib/swal";
+import { useRealtimeTable } from "@/hooks/use-realtime-query";
 
 export default function CreateInvoice() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  useRealtimeTable("parties", ["parties-active"]);
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
@@ -80,7 +84,6 @@ export default function CreateInvoice() {
     if (p) {
       setPartyName(p.name);
       setPartyGstin(p.gstin || "");
-      // Auto-detect GST type based on state
       if (settings?.state_code && p.gstin) {
         const partyState = p.gstin.substring(0, 2);
         setGstType(partyState === settings.state_code ? "cgst_sgst" : "igst");
@@ -128,7 +131,6 @@ export default function CreateInvoice() {
 
       if (error) throw error;
 
-      // Link bilties
       const { error: itemsError } = await supabase.from("invoice_items").insert(
         selectedBilties.map((biltyId) => ({
           invoice_id: invoice.id,
@@ -138,10 +140,8 @@ export default function CreateInvoice() {
       );
       if (itemsError) throw itemsError;
 
-      // Mark bilties as billed
       await supabase.from("bilties").update({ status: "billed" }).in("id", selectedBilties);
 
-      // Increment invoice number
       if (settings) {
         await supabase.from("company_settings")
           .update({ next_invoice_number: (settings.next_invoice_number || 1) + 1 })
@@ -155,25 +155,34 @@ export default function CreateInvoice() {
       queryClient.invalidateQueries({ queryKey: ["unbilled-bilties"] });
       queryClient.invalidateQueries({ queryKey: ["bilties"] });
       queryClient.invalidateQueries({ queryKey: ["company-settings"] });
-      toast({ title: "Invoice created successfully" });
+      swalSuccess("Invoice Created", `Invoice ${invoiceNumber} saved successfully.`);
       navigate("/invoices");
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => swalError("Error Creating Invoice", err.message),
   });
+
+  const handleSave = async () => {
+    const result = await swalConfirm("Save Invoice?", `Create invoice ${invoiceNumber}?`);
+    if (result.isConfirmed) saveMutation.mutate();
+  };
+
+  const handleCancel = async () => {
+    const result = await swalConfirm("Discard Changes?", "All unsaved changes will be lost.");
+    if (result.isConfirmed) navigate("/invoices");
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Create Invoice</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/invoices")}><X className="h-4 w-4 mr-1" /> Cancel</Button>
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+          <Button variant="outline" onClick={handleCancel}><X className="h-4 w-4 mr-1" /> Cancel</Button>
+          <Button onClick={handleSave} disabled={saveMutation.isPending}>
             <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? "Saving..." : "Save Invoice"}
           </Button>
         </div>
       </div>
 
-      {/* Invoice Details */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Invoice Details</CardTitle></CardHeader>
         <CardContent>
@@ -182,10 +191,21 @@ export default function CreateInvoice() {
             <div className="space-y-2"><Label>Invoice Date</Label><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Party</Label>
-              <Select value={partyId} onValueChange={handlePartySelect}>
-                <SelectTrigger><SelectValue placeholder="Select party" /></SelectTrigger>
-                <SelectContent>{parties.map((p) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}</SelectContent>
-              </Select>
+              <SelectWithAdd
+                value={partyId}
+                onValueChange={handlePartySelect}
+                placeholder="Select party"
+                items={parties.map((p) => ({ id: p.id, label: p.name }))}
+                tableName="parties"
+                addTitle="Party"
+                addFields={[
+                  { key: "name", label: "Party Name", required: true },
+                  { key: "phone", label: "Phone" },
+                  { key: "gstin", label: "GSTIN" },
+                  { key: "city", label: "City" },
+                ]}
+                queryKeys={["parties-active"]}
+              />
             </div>
             <div className="space-y-2">
               <Label>Payment Status</Label>
@@ -202,7 +222,6 @@ export default function CreateInvoice() {
         </CardContent>
       </Card>
 
-      {/* Select Bilties */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Select Unbilled Bilties</CardTitle></CardHeader>
         <CardContent className="p-0">
@@ -237,7 +256,6 @@ export default function CreateInvoice() {
         </CardContent>
       </Card>
 
-      {/* GST & Summary */}
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">GST & Summary</CardTitle></CardHeader>
         <CardContent className="space-y-4">
