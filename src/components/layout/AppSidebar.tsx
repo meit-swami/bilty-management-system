@@ -1,5 +1,6 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Database,
@@ -11,7 +12,9 @@ import {
   Settings,
   HardDrive,
   UserCog,
+  LogOut,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -41,8 +44,15 @@ const navItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
 
   const isActive = (path: string) => {
     if (path === "/") return location.pathname === "/";
@@ -89,9 +99,23 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t p-3">
+      <SidebarFooter className="border-t p-3 space-y-2">
+        <Button
+          variant="ghost"
+          size={collapsed ? "icon" : "default"}
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-destructive"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4" />
+          {!collapsed && <span>Logout</span>}
+        </Button>
         {!collapsed && (
-          <p className="text-[10px] text-muted-foreground text-center">© Simple Capital Solutions</p>
+          <p className="text-[10px] text-muted-foreground text-center">
+            ©{" "}
+            <a href="http://simplecapital.co.in/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              Simple Capital Solutions
+            </a>
+          </p>
         )}
       </SidebarFooter>
     </Sidebar>
