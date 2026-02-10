@@ -3,7 +3,19 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
+import MasterData from "./pages/MasterData";
+import Bilties from "./pages/Bilties";
+import CreateBilty from "./pages/CreateBilty";
+import Parties from "./pages/Parties";
+import Invoices from "./pages/Invoices";
+import CreateInvoice from "./pages/CreateInvoice";
+import Reports from "./pages/Reports";
+import Expenses from "./pages/Expenses";
+import SettingsPage from "./pages/SettingsPage";
+import Backup from "./pages/Backup";
+import UsersPage from "./pages/UsersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -15,8 +27,20 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/master-data" element={<MasterData />} />
+            <Route path="/bilties" element={<Bilties />} />
+            <Route path="/bilties/create" element={<CreateBilty />} />
+            <Route path="/parties" element={<Parties />} />
+            <Route path="/invoices" element={<Invoices />} />
+            <Route path="/invoices/create" element={<CreateInvoice />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/expenses" element={<Expenses />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/backup" element={<Backup />} />
+            <Route path="/users" element={<UsersPage />} />
+          </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
