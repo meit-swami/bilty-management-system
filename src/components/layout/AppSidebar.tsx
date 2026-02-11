@@ -12,6 +12,7 @@ import {
   Settings,
   HardDrive,
   UserCog,
+  ClipboardList,
   LogOut,
   ShoppingCart,
   CreditCard,
@@ -55,6 +56,7 @@ const otherNav = [
   { label: "Settings", path: "/settings", icon: Settings },
   { label: "Backup", path: "/backup", icon: HardDrive },
   { label: "Users", path: "/users", icon: UserCog },
+  { label: "Audit Log", path: "/audit-log", icon: ClipboardList },
 ];
 
 export function AppSidebar() {

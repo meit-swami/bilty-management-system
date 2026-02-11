@@ -47,6 +47,72 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          performed_by: string | null
+          performer_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          performed_by?: string | null
+          performer_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          performed_by?: string | null
+          performer_name?: string | null
+        }
+        Relationships: []
+      }
+      backup_logs: {
+        Row: {
+          created_at: string
+          file_name: string
+          format: string
+          id: string
+          performed_by: string | null
+          performer_name: string | null
+          row_count: number
+          tables_included: string[]
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          format: string
+          id?: string
+          performed_by?: string | null
+          performer_name?: string | null
+          row_count?: number
+          tables_included?: string[]
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          format?: string
+          id?: string
+          performed_by?: string | null
+          performer_name?: string | null
+          row_count?: number
+          tables_included?: string[]
+        }
+        Relationships: []
+      }
       bilties: {
         Row: {
           advance_paid: number | null

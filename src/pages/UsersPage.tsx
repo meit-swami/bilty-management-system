@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import {
@@ -22,7 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { swalSuccess, swalError } from "@/lib/swal";
-import { Plus, Pencil, Users, ShieldCheck } from "lucide-react";
+import { Plus, Pencil, Users, ShieldCheck, Trash2, UserX } from "lucide-react";
 
 const ROLES = [
   { value: "super_admin", label: "Super Admin" },
@@ -50,8 +55,16 @@ type UserRow = {
   roles: string[];
 };
 
+async function logAudit(action: string, entityType: string, entityId: string, details: any, performerId?: string, performerName?: string) {
+  await supabase.from("audit_logs" as any).insert({
+    action, entity_type: entityType, entity_id: entityId, details,
+    performed_by: performerId, performer_name: performerName,
+  });
+}
+
 export default function UsersPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", roles: ["viewer"] as string[] });
 
@@ -71,6 +84,20 @@ export default function UsersPage() {
   const [selectedGroupId, setSelectedGroupId] = useState<string>("");
   const [groupUserIds, setGroupUserIds] = useState<string[]>([]);
   const [groupRoles, setGroupRoles] = useState<string[]>([]);
+
+  // Delete/deactivate state
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [deleteAction, setDeleteAction] = useState<"delete" | "deactivate">("deactivate");
+
+  const { data: currentProfile } = useQuery({
+    queryKey: ["my-profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).single();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["profiles-with-roles"],
@@ -115,6 +142,8 @@ export default function UsersPage() {
     queryClient.invalidateQueries({ queryKey: ["module-permissions-all"] });
   };
 
+  const performerName = currentProfile?.full_name || user?.email || "Unknown";
+
   const createUserMutation = useMutation({
     mutationFn: async () => {
       if (!form.full_name.trim()) throw new Error("Name is required");
@@ -126,6 +155,7 @@ export default function UsersPage() {
       });
       if (error) throw new Error(error.message || "Failed to create user");
       if (data?.error) throw new Error(data.error);
+      await logAudit("user_created", "user", data?.user_id || "", { email: form.email, roles: form.roles }, user?.id, performerName);
     },
     onSuccess: () => {
       invalidateAll();
@@ -140,6 +170,7 @@ export default function UsersPage() {
     mutationFn: async () => {
       if (!editUser) throw new Error("No user selected");
       if (editForm.roles.length === 0) throw new Error("At least one role is required");
+      const oldRoles = editUser.roles;
       const { data, error } = await supabase.functions.invoke("update-user", {
         body: {
           user_id: editUser.user_id,
@@ -152,6 +183,13 @@ export default function UsersPage() {
       });
       if (error) throw new Error(error.message || "Failed to update user");
       if (data?.error) throw new Error(data.error);
+      // Audit log
+      const changes: any = {};
+      if (editForm.full_name !== editUser.full_name) changes.full_name = { from: editUser.full_name, to: editForm.full_name };
+      if (JSON.stringify(editForm.roles.sort()) !== JSON.stringify(oldRoles.sort())) changes.roles = { from: oldRoles, to: editForm.roles };
+      if (editForm.is_active !== editUser.is_active) changes.is_active = { from: editUser.is_active, to: editForm.is_active };
+      if (editForm.password) changes.password_changed = true;
+      await logAudit("user_updated", "user", editUser.user_id, { user_name: editUser.full_name, changes }, user?.id, performerName);
     },
     onSuccess: () => {
       invalidateAll();
@@ -164,7 +202,6 @@ export default function UsersPage() {
   const savePermissionsMutation = useMutation({
     mutationFn: async () => {
       if (editForm.roles.length === 0) return;
-      // Save permissions for each non-super_admin role
       const rolesToSave = editForm.roles.filter((r) => r !== "super_admin");
       for (const role of rolesToSave) {
         for (const mod of MODULES) {
@@ -185,6 +222,11 @@ export default function UsersPage() {
           }
         }
       }
+      await logAudit("permissions_updated", "module_permissions", rolesToSave.join(","), {
+        roles: rolesToSave,
+        permissions,
+        user_name: editUser?.full_name,
+      }, user?.id, performerName);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["module-permissions-all"] });
@@ -193,19 +235,46 @@ export default function UsersPage() {
     onError: (err: Error) => swalError(err.message),
   });
 
-  // Bulk assign roles to selected users
+  // Delete / Deactivate user
+  const deleteUserMutation = useMutation({
+    mutationFn: async () => {
+      if (!deleteTarget) throw new Error("No user selected");
+      if (deleteAction === "deactivate") {
+        const { data, error } = await supabase.functions.invoke("update-user", {
+          body: { user_id: deleteTarget.user_id, is_active: false },
+        });
+        if (error) throw new Error(error.message);
+        if (data?.error) throw new Error(data.error);
+        await logAudit("user_deactivated", "user", deleteTarget.user_id, { user_name: deleteTarget.full_name }, user?.id, performerName);
+      } else {
+        // Hard delete: remove roles, profile (edge function can't delete auth user without service role, so deactivate + remove data)
+        await supabase.from("user_roles").delete().eq("user_id", deleteTarget.user_id);
+        await supabase.from("user_groups").delete().eq("user_id", deleteTarget.user_id);
+        await supabase.from("profiles").delete().eq("user_id", deleteTarget.user_id);
+        await logAudit("user_deleted", "user", deleteTarget.user_id, { user_name: deleteTarget.full_name, email: deleteTarget.email }, user?.id, performerName);
+      }
+    },
+    onSuccess: () => {
+      invalidateAll();
+      swalSuccess(deleteAction === "deactivate" ? "User deactivated" : "User deleted");
+      setDeleteTarget(null);
+    },
+    onError: (err: Error) => swalError(err.message),
+  });
+
   const bulkAssignMutation = useMutation({
     mutationFn: async () => {
       if (selectedUserIds.length === 0) throw new Error("Select at least one user");
       if (bulkRoles.length === 0) throw new Error("Select at least one role");
       for (const userId of selectedUserIds) {
-        // Delete existing roles
         await supabase.from("user_roles").delete().eq("user_id", userId);
-        // Insert new roles
         for (const role of bulkRoles) {
           await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
         }
       }
+      await logAudit("bulk_roles_assigned", "user_roles", selectedUserIds.join(","), {
+        user_count: selectedUserIds.length, roles: bulkRoles,
+      }, user?.id, performerName);
     },
     onSuccess: () => {
       invalidateAll();
@@ -217,7 +286,6 @@ export default function UsersPage() {
     onError: (err: Error) => swalError(err.message),
   });
 
-  // Group: create
   const createGroupMutation = useMutation({
     mutationFn: async () => {
       if (!newGroupName.trim()) throw new Error("Group name is required");
@@ -232,16 +300,13 @@ export default function UsersPage() {
     onError: (err: Error) => swalError(err.message),
   });
 
-  // Group: assign users + roles
   const assignGroupRolesMutation = useMutation({
     mutationFn: async () => {
       if (!selectedGroupId) throw new Error("Select a group");
-      // Save group members
       await supabase.from("user_groups").delete().eq("group_id", selectedGroupId);
       for (const uid of groupUserIds) {
         await supabase.from("user_groups").insert({ group_id: selectedGroupId, user_id: uid });
       }
-      // Assign roles to all group members
       if (groupRoles.length > 0) {
         for (const uid of groupUserIds) {
           await supabase.from("user_roles").delete().eq("user_id", uid);
@@ -249,6 +314,10 @@ export default function UsersPage() {
             await supabase.from("user_roles").insert({ user_id: uid, role: role as any });
           }
         }
+        await logAudit("group_roles_assigned", "user_groups", selectedGroupId, {
+          group_name: groups.find((g) => g.id === selectedGroupId)?.name,
+          member_count: groupUserIds.length, roles: groupRoles,
+        }, user?.id, performerName);
       }
     },
     onSuccess: () => {
@@ -278,7 +347,6 @@ export default function UsersPage() {
       if (hasSuperAdmin) {
         perms[mod] = { can_create: true, can_read: true, can_update: true, can_delete: true };
       } else {
-        // Merge permissions across all roles (union / OR)
         const merged = { can_create: false, can_read: false, can_update: false, can_delete: false };
         for (const role of roles) {
           const found = allPermissions.find((p) => p.role === role && p.module === mod);
@@ -351,7 +419,6 @@ export default function UsersPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-semibold">Users & Roles</h1>
         <div className="flex gap-2 flex-wrap">
-          {/* Bulk Assign */}
           <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline"><ShieldCheck className="h-4 w-4 mr-1" /> Bulk Assign Roles</Button>
@@ -386,7 +453,6 @@ export default function UsersPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Group Assign */}
           <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" onClick={openGroupDialog}><Users className="h-4 w-4 mr-1" /> Groups</Button>
@@ -394,7 +460,6 @@ export default function UsersPage() {
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>User Groups & Role Assignment</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-2">
-                {/* Create group */}
                 <div className="flex gap-2">
                   <Input placeholder="New group name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
                   <Button size="sm" onClick={() => createGroupMutation.mutate()} disabled={createGroupMutation.isPending}>
@@ -441,7 +506,6 @@ export default function UsersPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Add User */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button><Plus className="h-4 w-4 mr-1" /> Add User</Button>
@@ -476,7 +540,7 @@ export default function UsersPage() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Roles</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-12"></TableHead>
+                <TableHead className="w-24 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -502,10 +566,20 @@ export default function UsersPage() {
                         {u.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEditSheet(u); }}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                    <TableCell className="text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEditSheet(u); }}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        {u.is_active && (
+                          <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(u); setDeleteAction("deactivate"); }} title="Deactivate">
+                            <UserX className="h-4 w-4 text-amber-500" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(u); setDeleteAction("delete"); }} title="Delete">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -514,6 +588,31 @@ export default function UsersPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Delete/Deactivate Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteAction === "deactivate" ? "Deactivate User" : "Delete User"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteAction === "deactivate"
+                ? `Are you sure you want to deactivate "${deleteTarget?.full_name}"? They will no longer be able to log in but their data will be preserved.`
+                : `Are you sure you want to permanently delete "${deleteTarget?.full_name}"? This will remove their profile, roles, and group memberships. This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteUserMutation.mutate()}
+              className={deleteAction === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            >
+              {deleteUserMutation.isPending ? "Processing..." : deleteAction === "deactivate" ? "Deactivate" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit User Sheet */}
       <Sheet open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
