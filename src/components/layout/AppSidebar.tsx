@@ -13,6 +13,10 @@ import {
   HardDrive,
   UserCog,
   LogOut,
+  ShoppingCart,
+  CreditCard,
+  FileSignature,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,12 +33,21 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const navItems = [
+const mainNav = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Master Data", path: "/master-data", icon: Database },
   { label: "All Bilties", path: "/bilties", icon: Truck },
   { label: "Parties", path: "/parties", icon: Users2 },
+];
+
+const salesNav = [
   { label: "Invoices", path: "/invoices", icon: FileText },
+  { label: "Payment Records", path: "/payments", icon: CreditCard },
+  { label: "Proposals", path: "/proposals", icon: FileSignature },
+  { label: "Leads", path: "/leads", icon: Target },
+];
+
+const otherNav = [
   { label: "Reports", path: "/reports", icon: BarChart3 },
   { label: "Expenses", path: "/expenses", icon: Wallet },
   { label: "Settings", path: "/settings", icon: Settings },
@@ -60,6 +73,21 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
+  const renderNavItems = (items: typeof mainNav) => (
+    <SidebarMenu>
+      {items.map((item) => (
+        <SidebarMenuItem key={item.path}>
+          <SidebarMenuButton asChild isActive={isActive(item.path)} tooltip={item.label}>
+            <Link to={item.path}>
+              <item.icon className="h-4 w-4" />
+              <span>{item.label}</span>
+            </Link>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b px-3 py-3">
@@ -78,25 +106,18 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.path}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={isActive(item.path)}
-                    tooltip={item.label}
-                  >
-                    <Link to={item.path}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupContent>{renderNavItems(mainNav)}</SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Sales</SidebarGroupLabel>
+          <SidebarGroupContent>{renderNavItems(salesNav)}</SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupContent>{renderNavItems(otherNav)}</SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
