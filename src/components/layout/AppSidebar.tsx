@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanyName } from "@/hooks/use-company-settings";
 import {
   LayoutDashboard,
   Database,
@@ -48,9 +48,10 @@ export function AppSidebar() {
   const { logout } = useAuth();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const companyName = useCompanyName();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login", { replace: true });
   };
 
@@ -68,8 +69,8 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div>
-              <p className="text-sm font-semibold leading-tight text-foreground">Simple Capital</p>
-              <p className="text-[10px] leading-tight text-muted-foreground">Solutions</p>
+              <p className="text-sm font-semibold leading-tight text-foreground">{companyName}</p>
+              <p className="text-[10px] leading-tight text-muted-foreground">Transport Management</p>
             </div>
           )}
         </Link>
@@ -110,12 +111,16 @@ export function AppSidebar() {
           {!collapsed && <span>Logout</span>}
         </Button>
         {!collapsed && (
-          <p className="text-[10px] text-muted-foreground text-center">
-            ©{" "}
-            <a href="http://simplecapital.co.in/" target="_blank" rel="noopener noreferrer" className="hover:underline">
-              Simple Capital Solutions
-            </a>
-          </p>
+          <div className="text-[10px] text-muted-foreground text-center space-y-0.5">
+            <p>© {new Date().getFullYear()} {companyName}</p>
+            <p>
+              Developed by{" "}
+              <a href="https://brandzaha.com" target="_blank" rel="noopener noreferrer" className="hover:underline text-primary">
+                BRANDZAHA CREATIVE AGENCY
+              </a>{" "}
+              with ❤️
+            </p>
+          </div>
         )}
       </SidebarFooter>
     </Sidebar>
