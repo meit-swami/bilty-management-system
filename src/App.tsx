@@ -12,6 +12,10 @@ import CreateBilty from "./pages/CreateBilty";
 import Parties from "./pages/Parties";
 import Invoices from "./pages/Invoices";
 import CreateInvoice from "./pages/CreateInvoice";
+import Proposals from "./pages/Proposals";
+import CreateProposal from "./pages/CreateProposal";
+import PaymentRecords from "./pages/PaymentRecords";
+import Leads from "./pages/Leads";
 import Reports from "./pages/Reports";
 import Expenses from "./pages/Expenses";
 import SettingsPage from "./pages/SettingsPage";
@@ -45,6 +49,10 @@ function AppRoutes() {
         <Route path="/parties" element={<Parties />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/invoices/create" element={<CreateInvoice />} />
+        <Route path="/proposals" element={<Proposals />} />
+        <Route path="/proposals/create" element={<CreateProposal />} />
+        <Route path="/payments" element={<PaymentRecords />} />
+        <Route path="/leads" element={<Leads />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/settings" element={<SettingsPage />} />

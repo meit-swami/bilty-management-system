@@ -462,6 +462,7 @@ export type Database = {
           cgst_amount: number | null
           cgst_rate: number | null
           created_at: string
+          due_date: string | null
           id: string
           igst_amount: number | null
           igst_rate: number | null
@@ -472,6 +473,8 @@ export type Database = {
           party_id: string | null
           party_name: string | null
           payment_status: string
+          public_password: string | null
+          public_token: string | null
           sgst_amount: number | null
           sgst_rate: number | null
           subtotal: number | null
@@ -484,6 +487,7 @@ export type Database = {
           cgst_amount?: number | null
           cgst_rate?: number | null
           created_at?: string
+          due_date?: string | null
           id?: string
           igst_amount?: number | null
           igst_rate?: number | null
@@ -494,6 +498,8 @@ export type Database = {
           party_id?: string | null
           party_name?: string | null
           payment_status?: string
+          public_password?: string | null
+          public_token?: string | null
           sgst_amount?: number | null
           sgst_rate?: number | null
           subtotal?: number | null
@@ -506,6 +512,7 @@ export type Database = {
           cgst_amount?: number | null
           cgst_rate?: number | null
           created_at?: string
+          due_date?: string | null
           id?: string
           igst_amount?: number | null
           igst_rate?: number | null
@@ -516,6 +523,8 @@ export type Database = {
           party_id?: string | null
           party_name?: string | null
           payment_status?: string
+          public_password?: string | null
+          public_token?: string | null
           sgst_amount?: number | null
           sgst_rate?: number | null
           subtotal?: number | null
@@ -526,6 +535,71 @@ export type Database = {
           {
             foreignKeyName: "invoices_party_id_fkey"
             columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          assigned_to: string | null
+          company: string | null
+          converted_to_party_id: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          expected_close_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          source: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+          value: number | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          company?: string | null
+          converted_to_party_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          expected_close_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          value?: number | null
+        }
+        Update: {
+          assigned_to?: string | null
+          company?: string | null
+          converted_to_party_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          expected_close_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_converted_to_party_id_fkey"
+            columns: ["converted_to_party_id"]
             isOneToOne: false
             referencedRelation: "parties"
             referencedColumns: ["id"]
@@ -649,6 +723,69 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_records: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          party_id: string | null
+          party_name: string | null
+          payment_date: string
+          payment_method: string | null
+          payment_number: string
+          reference_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          party_id?: string | null
+          party_name?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_number: string
+          reference_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          party_id?: string | null
+          party_name?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          payment_number?: string
+          reference_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_records_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -684,6 +821,160 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      proposal_items: {
+        Row: {
+          amount: number | null
+          created_at: string
+          description: string
+          id: string
+          is_optional: boolean | null
+          long_description: string | null
+          proposal_id: string
+          quantity: number | null
+          rate: number | null
+          sort_order: number | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          description: string
+          id?: string
+          is_optional?: boolean | null
+          long_description?: string | null
+          proposal_id: string
+          quantity?: number | null
+          rate?: number | null
+          sort_order?: number | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          description?: string
+          id?: string
+          is_optional?: boolean | null
+          long_description?: string | null
+          proposal_id?: string
+          quantity?: number | null
+          rate?: number | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_items_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposals: {
+        Row: {
+          allow_comments: boolean | null
+          assigned_to: string | null
+          cgst_amount: number | null
+          cgst_rate: number | null
+          converted_to_invoice_id: string | null
+          created_at: string
+          created_by: string | null
+          discount_amount: number | null
+          discount_type: string | null
+          discount_value: number | null
+          id: string
+          igst_amount: number | null
+          igst_rate: number | null
+          notes: string | null
+          party_gstin: string | null
+          party_id: string | null
+          party_name: string | null
+          proposal_date: string
+          proposal_number: string
+          public_password: string | null
+          public_token: string | null
+          sgst_amount: number | null
+          sgst_rate: number | null
+          status: string
+          subject: string | null
+          subtotal: number | null
+          tags: string[] | null
+          total_amount: number | null
+          updated_at: string
+          valid_until: string | null
+        }
+        Insert: {
+          allow_comments?: boolean | null
+          assigned_to?: string | null
+          cgst_amount?: number | null
+          cgst_rate?: number | null
+          converted_to_invoice_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          igst_amount?: number | null
+          igst_rate?: number | null
+          notes?: string | null
+          party_gstin?: string | null
+          party_id?: string | null
+          party_name?: string | null
+          proposal_date?: string
+          proposal_number: string
+          public_password?: string | null
+          public_token?: string | null
+          sgst_amount?: number | null
+          sgst_rate?: number | null
+          status?: string
+          subject?: string | null
+          subtotal?: number | null
+          tags?: string[] | null
+          total_amount?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Update: {
+          allow_comments?: boolean | null
+          assigned_to?: string | null
+          cgst_amount?: number | null
+          cgst_rate?: number | null
+          converted_to_invoice_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          discount_amount?: number | null
+          discount_type?: string | null
+          discount_value?: number | null
+          id?: string
+          igst_amount?: number | null
+          igst_rate?: number | null
+          notes?: string | null
+          party_gstin?: string | null
+          party_id?: string | null
+          party_name?: string | null
+          proposal_date?: string
+          proposal_number?: string
+          public_password?: string | null
+          public_token?: string | null
+          sgst_amount?: number | null
+          sgst_rate?: number | null
+          status?: string
+          subject?: string | null
+          subtotal?: number | null
+          tags?: string[] | null
+          total_amount?: number | null
+          updated_at?: string
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       roles: {
         Row: {

@@ -1,30 +1,30 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatINR, formatDate } from "@/lib/format";
 import { PlusCircle, X } from "lucide-react";
+import { useRealtimeTable } from "@/hooks/use-realtime-query";
+
+const statusColors: Record<string, string> = {
+  paid: "default",
+  partial: "secondary",
+  unpaid: "destructive",
+  overdue: "destructive",
+};
 
 export default function Invoices() {
+  useRealtimeTable("invoices", ["invoices"]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -43,25 +43,53 @@ export default function Invoices() {
     },
   });
 
-  const totalInvoices = invoices.length;
   const totalAmount = invoices.reduce((s, i) => s + Number(i.total_amount || 0), 0);
+  const totalPaid = invoices.reduce((s, i) => s + Number(i.amount_paid || 0), 0);
   const totalBalance = invoices.reduce((s, i) => s + Number(i.balance_due || 0), 0);
 
+  const countByStatus = (s: string) => invoices.filter((i) => i.payment_status === s).length;
+  const paidCount = countByStatus("paid");
+  const partialCount = countByStatus("partial");
+  const unpaidCount = countByStatus("unpaid");
+  const total = invoices.length;
+
   const clearFilters = () => { setStatusFilter("all"); setSearch(""); setDateFrom(""); setDateTo(""); };
+
+  const statusCards = [
+    { label: "Unpaid", value: "unpaid", count: unpaidCount, pct: total ? ((unpaidCount/total)*100).toFixed(1) : "0", color: "text-destructive border-destructive/30" },
+    { label: "Paid", value: "paid", count: paidCount, pct: total ? ((paidCount/total)*100).toFixed(1) : "0", color: "text-emerald-600 border-emerald-200" },
+    { label: "Partially Paid", value: "partial", count: partialCount, pct: total ? ((partialCount/total)*100).toFixed(1) : "0", color: "text-amber-600 border-amber-200" },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Invoices</h1>
-        <Button asChild>
-          <Link to="/invoices/create"><PlusCircle className="h-4 w-4 mr-1" /> Create Invoice</Link>
-        </Button>
+        <div className="flex gap-2 items-center text-xs">
+          <Badge variant="outline" className="text-emerald-600">Paid {formatINR(totalPaid)}</Badge>
+          <Badge variant="outline" className="text-destructive">Outstanding {formatINR(totalBalance)}</Badge>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Invoices</p><p className="text-2xl font-bold">{totalInvoices}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Amount</p><p className="text-2xl font-bold">{formatINR(totalAmount)}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Balance Due</p><p className="text-2xl font-bold text-destructive">{formatINR(totalBalance)}</p></CardContent></Card>
+      {/* Status filter cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+        {statusCards.map((s) => (
+          <button
+            key={s.value}
+            onClick={() => setStatusFilter(statusFilter === s.value ? "all" : s.value)}
+            className={`border rounded-lg p-3 text-left transition-colors hover:bg-muted/50 ${statusFilter === s.value ? "ring-2 ring-primary" : ""} ${s.color}`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-sm">{s.label}</span>
+              <span className="text-xs text-muted-foreground">({s.pct}%)</span>
+            </div>
+            <p className="text-lg font-bold">{s.count} / {total}</p>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button asChild><Link to="/invoices/create"><PlusCircle className="h-4 w-4 mr-1" /> Create Invoice</Link></Button>
       </div>
 
       <Card>
@@ -104,8 +132,8 @@ export default function Invoices() {
                 <TableHead>Invoice No</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Party</TableHead>
-                <TableHead className="text-right">Subtotal</TableHead>
-                <TableHead className="text-right">GST</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead className="text-right">Total Tax</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
                 <TableHead>Status</TableHead>
@@ -129,8 +157,12 @@ export default function Invoices() {
                       <TableCell className="text-right font-medium">{formatINR(Number(inv.total_amount || 0))}</TableCell>
                       <TableCell className="text-right">{formatINR(Number(inv.balance_due || 0))}</TableCell>
                       <TableCell>
-                        <Badge variant={inv.payment_status === "paid" ? "default" : inv.payment_status === "partial" ? "secondary" : "destructive"}>
-                          {inv.payment_status}
+                        <Badge variant={
+                          inv.payment_status === "paid" ? "default" 
+                          : inv.payment_status === "partial" ? "secondary" 
+                          : "destructive"
+                        }>
+                          {inv.payment_status === "partial" ? "Partially Paid" : inv.payment_status}
                         </Badge>
                       </TableCell>
                     </TableRow>
