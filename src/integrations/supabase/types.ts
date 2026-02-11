@@ -231,6 +231,33 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          message: string
+          sender_id: string
+          sender_name: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          id?: string
+          message: string
+          sender_id: string
+          sender_name?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string
+          sender_name?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address: string | null
@@ -318,6 +345,104 @@ export type Database = {
           mobile?: string | null
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_logs: {
+        Row: {
+          body_html: string | null
+          browser: string | null
+          created_at: string
+          device: string | null
+          error_message: string | null
+          id: string
+          open_count: number | null
+          opened_at: string | null
+          related_id: string | null
+          related_type: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          subject: string
+          template_id: string | null
+          to_email: string
+        }
+        Insert: {
+          body_html?: string | null
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          error_message?: string | null
+          id?: string
+          open_count?: number | null
+          opened_at?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject: string
+          template_id?: string | null
+          to_email: string
+        }
+        Update: {
+          body_html?: string | null
+          browser?: string | null
+          created_at?: string
+          device?: string | null
+          error_message?: string | null
+          id?: string
+          open_count?: number | null
+          opened_at?: string | null
+          related_id?: string | null
+          related_type?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string
+          template_id?: string | null
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          body_html: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          subject: string
+          updated_at: string
+          variables: string[] | null
+        }
+        Insert: {
+          body_html?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          subject?: string
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Update: {
+          body_html?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          subject?: string
+          updated_at?: string
+          variables?: string[] | null
         }
         Relationships: []
       }
@@ -666,6 +791,42 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       parties: {
         Row: {
           address: string | null
@@ -1000,6 +1161,51 @@ export type Database = {
           is_system?: boolean
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      smtp_settings: {
+        Row: {
+          created_at: string
+          encryption: string
+          from_email: string | null
+          from_name: string | null
+          host: string
+          id: string
+          is_active: boolean
+          password: string
+          port: number
+          type: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          encryption?: string
+          from_email?: string | null
+          from_name?: string | null
+          host?: string
+          id?: string
+          is_active?: boolean
+          password?: string
+          port?: number
+          type: string
+          updated_at?: string
+          username?: string
+        }
+        Update: {
+          created_at?: string
+          encryption?: string
+          from_email?: string | null
+          from_name?: string | null
+          host?: string
+          id?: string
+          is_active?: boolean
+          password?: string
+          port?: number
+          type?: string
+          updated_at?: string
+          username?: string
         }
         Relationships: []
       }
