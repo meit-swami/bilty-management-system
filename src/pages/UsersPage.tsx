@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { swalSuccess, swalError } from "@/lib/swal";
-import { Plus, Pencil, Users, ShieldCheck, Trash2, UserX } from "lucide-react";
+import { Plus, Pencil, Users, ShieldCheck, Trash2, UserX, Shield } from "lucide-react";
 
 const ROLES = [
   { value: "super_admin", label: "Super Admin" },
@@ -539,15 +539,16 @@ export default function UsersPage() {
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Roles</TableHead>
+                <TableHead>2FA</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-24 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
               ) : users.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No users yet</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No users yet</TableCell></TableRow>
               ) : (
                 users.map((u: any) => (
                   <TableRow key={u.id} className="cursor-pointer" onClick={() => openEditSheet(u)}>
@@ -560,6 +561,17 @@ export default function UsersPage() {
                           ? u.roles.map((r: string) => <Badge key={r} variant="outline" className="capitalize text-xs">{r.replace("_", " ")}</Badge>)
                           : <Badge variant="secondary" className="text-xs">No role</Badge>}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={(u as any).mfa_enabled === 1}
+                        onCheckedChange={async (v) => {
+                          await supabase.from("profiles").update({ mfa_enabled: v ? 1 : 0 } as any).eq("user_id", u.user_id);
+                          invalidateAll();
+                          swalSuccess(v ? "2FA enabled for user" : "2FA disabled for user");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
                     </TableCell>
                     <TableCell>
                       <Badge variant={u.is_active ? "default" : "secondary"}>
@@ -651,6 +663,21 @@ export default function UsersPage() {
               <div className="flex items-center justify-between">
                 <Label>Active</Label>
                 <Switch checked={editForm.is_active} onCheckedChange={(v) => setEditForm((p) => ({ ...p, is_active: v }))} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>2FA Enforcement</Label>
+                  <p className="text-xs text-muted-foreground">Toggle OFF to bypass 2FA for this user</p>
+                </div>
+                <Switch
+                  checked={(editUser as any)?.mfa_enabled === 1}
+                  onCheckedChange={async (v) => {
+                    if (!editUser) return;
+                    await supabase.from("profiles").update({ mfa_enabled: v ? 1 : 0 } as any).eq("user_id", editUser.user_id);
+                    invalidateAll();
+                    swalSuccess(v ? "2FA enforcement enabled" : "2FA enforcement disabled for this user");
+                  }}
+                />
               </div>
               <Button className="w-full" onClick={() => updateUserMutation.mutate()} disabled={updateUserMutation.isPending}>
                 {updateUserMutation.isPending ? "Saving..." : "Save Profile"}

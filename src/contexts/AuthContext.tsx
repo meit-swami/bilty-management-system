@@ -54,7 +54,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoginTime(now);
     localStorage.setItem("scs_login_time", String(now));
     if (hasVerifiedTotp) {
-      return { error: null, mfaRequired: true };
+      // Check if mfa_enabled flag is set in profile (1 = enforce, 0 = bypass)
+      const userId = data.user?.id;
+      if (userId) {
+        const { data: profileData } = await supabase.from("profiles").select("mfa_enabled").eq("user_id", userId).single();
+        const mfaEnforced = (profileData as any)?.mfa_enabled !== 0;
+        if (mfaEnforced) {
+          return { error: null, mfaRequired: true };
+        }
+      }
     }
     return { error: null };
   };
