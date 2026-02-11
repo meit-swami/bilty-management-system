@@ -19,10 +19,12 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const { error } = await login(email, password);
+    const result = await login(email, password);
     setLoading(false);
-    if (error) {
-      setError(error);
+    if (result.error) {
+      setError(result.error);
+    } else if (result.mfaRequired) {
+      navigate("/mfa-verify", { replace: true });
     } else {
       navigate("/", { replace: true });
     }

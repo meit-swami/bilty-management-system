@@ -22,6 +22,7 @@ import SettingsPage from "./pages/SettingsPage";
 import Backup from "./pages/Backup";
 import UsersPage from "./pages/UsersPage";
 import Login from "./pages/Login";
+import MfaVerify from "./pages/MfaVerify";
 import PublicInvoice from "./pages/PublicInvoice";
 import EmailLogs from "./pages/EmailLogs";
 import AuditLog from "./pages/AuditLog";
@@ -44,6 +45,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/mfa-verify" element={<MfaVerify />} />
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/" element={<Index />} />
         <Route path="/master-data" element={<MasterData />} />

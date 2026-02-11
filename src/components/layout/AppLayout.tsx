@@ -4,6 +4,7 @@ import { AppSidebar } from "./AppSidebar";
 import { useCompanyName } from "@/hooks/use-company-settings";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { UserProfileMenu } from "./UserProfileMenu";
 
 export function AppLayout() {
   const companyName = useCompanyName();
@@ -15,7 +16,10 @@ export function AppLayout() {
         <div className="flex-1 flex flex-col min-w-0">
           <header className="sticky top-0 z-50 h-12 flex items-center justify-between border-b bg-background/95 backdrop-blur px-4">
             <SidebarTrigger />
-            <NotificationBell />
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <UserProfileMenu />
+            </div>
           </header>
           <main className="flex-1 p-4 lg:p-6 max-w-[1400px] w-full mx-auto">
             <Outlet />

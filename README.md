@@ -10,11 +10,17 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 
 ### 🔐 Authentication & RBAC
 - Supabase Auth with email/password login
+- **TOTP Two-Factor Authentication** (Microsoft Authenticator / Google Authenticator)
+  - Users can enable/disable 2FA from their profile
+  - Super Admins can manage 2FA settings in Users page
+  - QR code enrollment flow with 6-digit verification
+  - MFA challenge on login when 2FA is enabled
 - Role-Based Access Control (RBAC) with 5 roles: Super Admin, Admin, Manager, Accountant, Viewer
 - Group-based user management
 - Per-module CRUD permissions (configurable in Settings)
 - Each user gets their own login credentials
 - Edge function for admin user creation with role assignment
+- **User Profile Menu** with name display, session timer (hh:mm:ss), profile editing, and password change
 
 ### 🚚 Bilty (Lorry Receipt) Management
 - Create & **edit** bilties with auto-generated serial numbers (configurable prefix)
