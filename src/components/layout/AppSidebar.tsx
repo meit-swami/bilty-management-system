@@ -17,6 +17,7 @@ import {
   CreditCard,
   FileSignature,
   Target,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +51,7 @@ const salesNav = [
 const otherNav = [
   { label: "Reports", path: "/reports", icon: BarChart3 },
   { label: "Expenses", path: "/expenses", icon: Wallet },
+  { label: "Email", path: "/email", icon: Mail },
   { label: "Settings", path: "/settings", icon: Settings },
   { label: "Backup", path: "/backup", icon: HardDrive },
   { label: "Users", path: "/users", icon: UserCog },

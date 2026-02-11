@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { swalSuccess, swalError } from "@/lib/swal";
 import { Save, Upload, X } from "lucide-react";
+import SmtpSettingsTab from "@/components/settings/SmtpSettingsTab";
 
 const MODULES = [
   "dashboard", "master_data", "bilties", "parties", "invoices",
@@ -177,6 +178,7 @@ export default function SettingsPage() {
           <TabsTrigger value="branding">Branding</TabsTrigger>
           <TabsTrigger value="numbering">Numbering</TabsTrigger>
           <TabsTrigger value="permissions">Role Permissions</TabsTrigger>
+          <TabsTrigger value="email">Email (SMTP)</TabsTrigger>
         </TabsList>
 
         <TabsContent value="company" className="space-y-4 mt-4">
@@ -286,6 +288,9 @@ export default function SettingsPage() {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="email" className="mt-4">
+          <SmtpSettingsTab />
         </TabsContent>
       </Tabs>
     </div>
