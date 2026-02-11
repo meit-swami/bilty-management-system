@@ -46,7 +46,7 @@ serve(async (req) => {
       });
     }
 
-    const { user_id, full_name, phone, password, role, is_active } = await req.json();
+    const { user_id, full_name, phone, password, roles, role, is_active } = await req.json();
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id is required" }), {
@@ -73,10 +73,13 @@ serve(async (req) => {
       }
     }
 
-    // Update role
-    if (role) {
+    // Update roles (support array or single)
+    const rolesToAssign = roles ? (Array.isArray(roles) ? roles : [roles]) : (role ? [role] : null);
+    if (rolesToAssign && rolesToAssign.length > 0) {
       await adminClient.from("user_roles").delete().eq("user_id", user_id);
-      await adminClient.from("user_roles").insert({ user_id, role });
+      for (const r of rolesToAssign) {
+        await adminClient.from("user_roles").insert({ user_id, role: r });
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {

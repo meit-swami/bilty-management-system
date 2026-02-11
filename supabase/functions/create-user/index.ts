@@ -59,7 +59,7 @@ serve(async (req) => {
       });
     }
 
-    const { email, password, full_name, phone, role } = await req.json();
+    const { email, password, full_name, phone, role, roles } = await req.json();
 
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -91,11 +91,12 @@ serve(async (req) => {
         .eq("user_id", newUser.user.id);
     }
 
-    // Assign role
-    if (role) {
+    // Assign roles (support both single role and array)
+    const rolesToAssign = roles ? (Array.isArray(roles) ? roles : [roles]) : (role ? [role] : []);
+    for (const r of rolesToAssign) {
       await adminClient.from("user_roles").insert({
         user_id: newUser.user.id,
-        role,
+        role: r,
       });
     }
 
