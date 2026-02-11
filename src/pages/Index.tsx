@@ -1,27 +1,16 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatINR, formatDate } from "@/lib/format";
 import {
-  FileText,
-  Truck,
-  Users2,
-  BarChart3,
-  PlusCircle,
-  IndianRupee,
-  ClipboardList,
-  AlertCircle,
-  Banknote,
+  FileText, Truck, Users2, BarChart3, PlusCircle,
+  IndianRupee, ClipboardList, AlertCircle, Banknote, Sparkles,
 } from "lucide-react";
 
 const quickActions = [
@@ -32,7 +21,29 @@ const quickActions = [
   { label: "View Reports", path: "/reports", icon: BarChart3 },
 ];
 
+function FloatingOrbs() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden -z-10">
+      <div className="absolute top-10 left-[10%] h-64 w-64 rounded-full bg-primary/5 blur-3xl animate-[float1_20s_ease-in-out_infinite]" />
+      <div className="absolute top-40 right-[15%] h-48 w-48 rounded-full bg-primary/4 blur-3xl animate-[float2_25s_ease-in-out_infinite]" />
+      <div className="absolute bottom-20 left-[30%] h-56 w-56 rounded-full bg-primary/3 blur-3xl animate-[float3_22s_ease-in-out_infinite]" />
+      <div className="absolute top-[60%] right-[5%] h-40 w-40 rounded-full bg-accent/30 blur-2xl animate-[float1_18s_ease-in-out_infinite_reverse]" />
+    </div>
+  );
+}
+
 export default function Dashboard() {
+  const [animationsOn, setAnimationsOn] = useState(() => {
+    const stored = localStorage.getItem("dashboard_animations");
+    return stored !== "off";
+  });
+
+  const toggleAnimations = () => {
+    const next = !animationsOn;
+    setAnimationsOn(next);
+    localStorage.setItem("dashboard_animations", next ? "on" : "off");
+  };
+
   const today = formatDate(new Date());
 
   const { data: bilties = [] } = useQuery({
@@ -72,15 +83,35 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Welcome back · {today}</p>
+    <div className="relative space-y-6">
+      {animationsOn && <FloatingOrbs />}
+
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Welcome back · {today}</p>
+        </div>
+        <button
+          onClick={toggleAnimations}
+          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            animationsOn
+              ? "bg-primary/10 text-primary"
+              : "bg-muted text-muted-foreground"
+          }`}
+          title={animationsOn ? "Turn off animations" : "Turn on animations"}
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          {animationsOn ? "On" : "Off"}
+        </button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label}>
+        {kpis.map((kpi, i) => (
+          <Card
+            key={kpi.label}
+            className={animationsOn ? "animate-fade-in" : ""}
+            style={animationsOn ? { animationDelay: `${i * 80}ms`, animationFillMode: "both" } : undefined}
+          >
             <CardContent className="p-4 flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground">{kpi.label}</p>
@@ -107,7 +138,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className={animationsOn ? "animate-fade-in" : ""} style={animationsOn ? { animationDelay: "200ms", animationFillMode: "both" } : undefined}>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Recent Bilties</CardTitle>
           </CardHeader>
@@ -141,7 +172,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={animationsOn ? "animate-fade-in" : ""} style={animationsOn ? { animationDelay: "300ms", animationFillMode: "both" } : undefined}>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Recent Invoices</CardTitle>
           </CardHeader>
