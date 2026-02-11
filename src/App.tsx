@@ -22,6 +22,7 @@ import SettingsPage from "./pages/SettingsPage";
 import Backup from "./pages/Backup";
 import UsersPage from "./pages/UsersPage";
 import Login from "./pages/Login";
+import PublicInvoice from "./pages/PublicInvoice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ function AppRoutes() {
         <Route path="/master-data" element={<MasterData />} />
         <Route path="/bilties" element={<Bilties />} />
         <Route path="/bilties/create" element={<CreateBilty />} />
+        <Route path="/bilties/edit/:id" element={<CreateBilty />} />
         <Route path="/parties" element={<Parties />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/invoices/create" element={<CreateInvoice />} />
@@ -59,6 +61,7 @@ function AppRoutes() {
         <Route path="/backup" element={<Backup />} />
         <Route path="/users" element={<UsersPage />} />
       </Route>
+      <Route path="/invoice/public/:token" element={<PublicInvoice />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

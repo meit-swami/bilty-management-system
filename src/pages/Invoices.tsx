@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,15 +13,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatINR, formatDate } from "@/lib/format";
-import { PlusCircle, X } from "lucide-react";
+import { PlusCircle, X, FileDown, Link2 } from "lucide-react";
 import { useRealtimeTable } from "@/hooks/use-realtime-query";
-
-const statusColors: Record<string, string> = {
-  paid: "default",
-  partial: "secondary",
-  unpaid: "destructive",
-  overdue: "destructive",
-};
+import { generateInvoicePDF } from "@/lib/pdf";
+import { toast } from "@/hooks/use-toast";
 
 export default function Invoices() {
   useRealtimeTable("invoices", ["invoices"]);
@@ -43,6 +38,14 @@ export default function Invoices() {
     },
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ["company-settings"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_settings").select("*").maybeSingle();
+      return data;
+    },
+  });
+
   const totalAmount = invoices.reduce((s, i) => s + Number(i.total_amount || 0), 0);
   const totalPaid = invoices.reduce((s, i) => s + Number(i.amount_paid || 0), 0);
   const totalBalance = invoices.reduce((s, i) => s + Number(i.balance_due || 0), 0);
@@ -60,6 +63,28 @@ export default function Invoices() {
     { label: "Paid", value: "paid", count: paidCount, pct: total ? ((paidCount/total)*100).toFixed(1) : "0", color: "text-emerald-600 border-emerald-200" },
     { label: "Partially Paid", value: "partial", count: partialCount, pct: total ? ((partialCount/total)*100).toFixed(1) : "0", color: "text-amber-600 border-amber-200" },
   ];
+
+  const handleDownloadPDF = async (inv: any) => {
+    const { data: invItems } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
+    const biltyIds = (invItems || []).map((i) => i.bilty_id);
+    const { data: bilties } = await supabase.from("bilties").select("*").in("id", biltyIds.length ? biltyIds : ["none"]);
+    const doc = generateInvoicePDF(inv, invItems || [], bilties || [], settings || {});
+    doc.save(`${inv.invoice_number}.pdf`);
+  };
+
+  const handleCopyPublicLink = async (inv: any) => {
+    let token = inv.public_token;
+    if (!token) {
+      token = crypto.randomUUID();
+      const password = Math.random().toString(36).slice(-8);
+      await supabase.from("invoices").update({ public_token: token, public_password: password }).eq("id", inv.id);
+      toast({ title: "Public link created", description: `Password: ${password} (copied to clipboard)` });
+      await navigator.clipboard.writeText(password);
+    }
+    const url = `${window.location.origin}/invoice/public/${token}`;
+    await navigator.clipboard.writeText(url);
+    toast({ title: "Link copied to clipboard" });
+  };
 
   return (
     <div className="space-y-6">
@@ -137,13 +162,14 @@ export default function Invoices() {
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
               ) : invoices.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No invoices found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No invoices found</TableCell></TableRow>
               ) : (
                 invoices.map((inv) => {
                   const gst = Number(inv.cgst_amount || 0) + Number(inv.sgst_amount || 0) + Number(inv.igst_amount || 0);
@@ -164,6 +190,16 @@ export default function Invoices() {
                         }>
                           {inv.payment_status === "partial" ? "Partially Paid" : inv.payment_status}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleDownloadPDF(inv)} title="Download PDF">
+                            <FileDown className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleCopyPublicLink(inv)} title="Copy public link">
+                            <Link2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

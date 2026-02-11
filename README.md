@@ -8,20 +8,23 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 
 ## Features
 
-### 🔐 Authentication & Session Management
-- Username/password-based admin login
-- Session persistence via `localStorage`
-- Protected routes — all pages require login
-- Logout from sidebar
+### 🔐 Authentication & RBAC
+- Supabase Auth with email/password login
+- Role-Based Access Control (RBAC) with 5 roles: Super Admin, Admin, Manager, Accountant, Viewer
+- Group-based user management
+- Per-module CRUD permissions (configurable in Settings)
+- Each user gets their own login credentials
+- Edge function for admin user creation with role assignment
 
 ### 🚚 Bilty (Lorry Receipt) Management
-- Create bilties with auto-generated serial numbers (configurable prefix)
+- Create & **edit** bilties with auto-generated serial numbers (configurable prefix)
 - Consignor & Consignee party selection with auto-fill of address/GSTIN
 - Vehicle & Driver selection from master data
 - Goods items table with quantity, weight, rate, and amount calculation
 - Financial breakdown: freight, loading/unloading, weight charges, advance paid
 - E-way bill number support
 - GSTIN validation (15-char Indian format)
+- **PDF generation** with company letterhead, GST breakdown, download/print support
 
 ### 🧾 Invoice Management
 - Create GST invoices linked to unbilled bilties
@@ -29,6 +32,27 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 - Configurable GST rates
 - Payment status tracking (Unpaid / Partial / Paid)
 - Auto-increment invoice numbers
+- **PDF generation** with full GST breakdown
+- **Public/shareable invoice link** with password protection (viewable without login)
+- Status filter cards (click to filter Unpaid/Paid/Partial)
+
+### 💳 Payment Records
+- Record payments against invoices (Cash, UPI, Bank Transfer, Cheque, Other)
+- Auto-generated payment numbers
+- Automatic invoice balance & status updates on payment recording
+- Filter by date range and payment method
+
+### 📝 Proposals
+- Create proposals with line items, optional items, and GST
+- Discount support (percentage or fixed amount)
+- Proposal status tracking (Draft, Sent, Accepted, Rejected, Expired)
+- Convert proposals to invoices (future-ready)
+
+### 🎯 Lead Management
+- Visual pipeline view with status cards (New, Contacted, Qualified, Proposal Sent, Negotiation, Customer, Lost)
+- Track lead value, source, expected close date
+- Convert leads to parties
+- Tag-based organization
 
 ### 👥 Party Management
 - Manage consignors, consignees, and dual-role parties
@@ -49,17 +73,22 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 - Running total calculation
 
 ### 📈 Reports & Dashboard
-- Dashboard with key metrics
-- Financial reporting
+- Dashboard with key metrics (Total Bilties, Revenue, Outstanding, Advance)
+- Quick action buttons for common tasks
+- Recent bilties and invoices tables
 
 ### ⚙️ Settings
-- Company name, address, GSTIN, state code
-- Bilty & Invoice prefix and auto-numbering
-- Financial year configuration
+- **Company Profile**: Name, address, phone, email
+- **Branding**: Upload light logo, dark logo, and favicon
+- **GST Details**: GSTIN, state code
+- **Numbering**: Bilty & invoice prefix and auto-numbering
+- **Role Permissions**: Full CRUD permission matrix for all modules × roles
 
 ### 👤 User Management
-- Manage app users with roles
+- Create users with Supabase Auth (real email/password)
+- Assign roles (Super Admin, Admin, Manager, Accountant, Viewer)
 - Active/inactive status
+- Profile management
 
 ### 💾 Backup
 - Data backup functionality
@@ -67,7 +96,6 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 ### 🔔 SweetAlert2 Notifications
 - Confirmation dialogs for save, delete, and discard actions
 - Success/error popups for all CRUD operations
-- Replaces native browser alerts with styled modals
 
 ### ➕ Inline Quick-Add in Dropdowns
 - All master data dropdowns (Vehicle, Driver, Party) have a `+` button
@@ -76,8 +104,13 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 
 ### 🔄 Real-Time Data Sync
 - Supabase Realtime subscriptions on master data tables
-- Dropdowns auto-refresh when data is added from Master Data page or another browser tab
-- No manual page refresh needed — works like AJAX live updates
+- Dropdowns auto-refresh when data is added
+
+### 📄 PDF Generation
+- Professional bilty PDFs with company letterhead
+- Tax invoice PDFs with full GST breakdown (CGST/SGST/IGST)
+- Company footer with branding
+- Download and print support
 
 ---
 
@@ -91,7 +124,9 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 | **State Management** | TanStack React Query (server state) |
 | **Routing** | React Router DOM v6 |
 | **Backend / Database** | Lovable Cloud (Supabase) — PostgreSQL |
+| **Authentication** | Supabase Auth (email/password) |
 | **Real-Time** | Supabase Realtime (Postgres Changes) |
+| **PDF Generation** | jsPDF + jsPDF-AutoTable |
 | **Notifications** | SweetAlert2 |
 | **Icons** | Lucide React |
 | **Forms** | React Hook Form + Zod (available) |
@@ -106,7 +141,7 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 |-------|---------|
 | `bilties` | Lorry receipts / bilties |
 | `bilty_items` | Goods line items per bilty |
-| `invoices` | GST invoices |
+| `invoices` | GST invoices with public sharing |
 | `invoice_items` | Bilties linked to invoices |
 | `parties` | Consignors, consignees |
 | `vehicles` | Fleet vehicles |
@@ -114,8 +149,29 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 | `locations` | City/state/pincode master |
 | `goods_types` | Goods category master |
 | `expenses` | Expense records |
-| `company_settings` | Company info, numbering config |
-| `app_users` | Application users |
+| `proposals` | Sales proposals |
+| `proposal_items` | Proposal line items |
+| `payment_records` | Payment transactions |
+| `leads` | Sales leads / pipeline |
+| `company_settings` | Company info, numbering, logos |
+| `profiles` | User profiles (linked to auth) |
+| `user_roles` | RBAC role assignments |
+| `roles` | Role definitions |
+| `groups` | User groups |
+| `user_groups` | Group membership |
+| `module_permissions` | Per-role CRUD permissions |
+
+---
+
+## RBAC Roles
+
+| Role | Description |
+|------|-------------|
+| `super_admin` | Full access to everything |
+| `admin` | Full access (except system config) |
+| `manager` | Create, read, update on most modules |
+| `accountant` | Financial modules (invoices, payments, expenses) |
+| `viewer` | Read-only access |
 
 ---
 
@@ -128,19 +184,45 @@ src/
 │   ├── ui/              # shadcn/ui components
 │   └── SelectWithAdd.tsx # Reusable select + quick-add component
 ├── contexts/
-│   └── AuthContext.tsx   # Auth state & session management
+│   └── AuthContext.tsx   # Supabase Auth state & session
 ├── hooks/
-│   ├── use-realtime-query.ts  # Supabase realtime auto-invalidation
+│   ├── use-rbac.ts           # RBAC permission hooks
+│   ├── use-company-settings.ts # Dynamic company name
+│   ├── use-realtime-query.ts  # Supabase realtime
 │   ├── use-toast.ts
 │   └── use-mobile.tsx
 ├── integrations/
 │   └── supabase/        # Auto-generated client & types
 ├── lib/
 │   ├── format.ts        # INR & date formatters
+│   ├── pdf.ts           # PDF generation (bilty & invoice)
 │   ├── swal.ts          # SweetAlert2 utility functions
 │   └── utils.ts         # cn() helper
-├── pages/               # All route pages
-└── main.tsx
+├── pages/
+│   ├── Index.tsx         # Dashboard
+│   ├── Bilties.tsx       # All bilties with edit/delete/PDF
+│   ├── CreateBilty.tsx   # Create & edit bilty
+│   ├── Invoices.tsx      # Invoice list with PDF & public link
+│   ├── CreateInvoice.tsx # Create invoice
+│   ├── PublicInvoice.tsx # Password-protected public invoice view
+│   ├── Proposals.tsx     # Proposals management
+│   ├── CreateProposal.tsx
+│   ├── PaymentRecords.tsx
+│   ├── Leads.tsx         # Lead pipeline
+│   ├── Parties.tsx
+│   ├── MasterData.tsx
+│   ├── Reports.tsx
+│   ├── Expenses.tsx
+│   ├── SettingsPage.tsx  # Settings with branding & permissions
+│   ├── UsersPage.tsx     # User management
+│   ├── Backup.tsx
+│   └── Login.tsx
+├── main.tsx
+supabase/
+├── functions/
+│   ├── create-user/      # Admin user creation edge function
+│   └── setup-admin/      # Initial admin setup
+└── migrations/           # Database schema migrations
 ```
 
 ---
@@ -163,12 +245,12 @@ npm run dev
 
 ---
 
-## Credentials
+## Default Credentials
 
-| Username | Password |
-|----------|----------|
-| `admin`  | `12345`  |
+| Email | Password |
+|-------|----------|
+| `admin@simplecapital.co.in` | `Admin@12345` |
 
 ---
 
-© [Simple Capital Solutions](http://simplecapital.co.in/)
+© [Simple Capital Solutions](http://simplecapital.co.in/) · Developed by [BRANDZAHA CREATIVE AGENCY](https://brandzaha.com) with ❤️

@@ -6,21 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { swalSuccess, swalError } from "@/lib/swal";
-import { Save } from "lucide-react";
+import { Save, Upload, X } from "lucide-react";
 
 const MODULES = [
   "dashboard", "master_data", "bilties", "parties", "invoices",
+  "payment_records", "proposals", "leads",
   "reports", "expenses", "settings", "backup", "users",
 ];
 
@@ -49,6 +44,10 @@ export default function SettingsPage() {
     next_invoice_number: 1,
   });
 
+  const [logoLightPreview, setLogoLightPreview] = useState<string | null>(null);
+  const [logoDarkPreview, setLogoDarkPreview] = useState<string | null>(null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (settings) {
       setForm({
@@ -63,6 +62,9 @@ export default function SettingsPage() {
         next_bilty_number: settings.next_bilty_number || 1,
         next_invoice_number: settings.next_invoice_number || 1,
       });
+      setLogoLightPreview(settings.logo_light_url || null);
+      setLogoDarkPreview(settings.logo_dark_url || null);
+      setFaviconPreview(settings.favicon_url || null);
     }
   }, [settings]);
 
@@ -78,6 +80,39 @@ export default function SettingsPage() {
     },
     onError: (err: Error) => swalError(err.message),
   });
+
+  const uploadLogo = async (file: File, type: "logo_light" | "logo_dark" | "favicon") => {
+    if (!settings?.id) return;
+    const ext = file.name.split(".").pop();
+    const path = `${type}_${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("company-assets").upload(path, file, { upsert: true });
+    if (uploadError) { swalError("Upload failed", uploadError.message); return; }
+    const { data: urlData } = supabase.storage.from("company-assets").getPublicUrl(path);
+    const url = urlData.publicUrl;
+    const updateField = type === "logo_light" ? "logo_light_url" : type === "logo_dark" ? "logo_dark_url" : "favicon_url";
+    await supabase.from("company_settings").update({ [updateField]: url }).eq("id", settings.id);
+    queryClient.invalidateQueries({ queryKey: ["company-settings"] });
+
+    if (type === "logo_light") setLogoLightPreview(url);
+    if (type === "logo_dark") setLogoDarkPreview(url);
+    if (type === "favicon") {
+      setFaviconPreview(url);
+      // Update browser favicon
+      const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (link) link.href = url;
+    }
+    swalSuccess("Uploaded successfully");
+  };
+
+  const removeLogo = async (type: "logo_light" | "logo_dark" | "favicon") => {
+    if (!settings?.id) return;
+    const updateField = type === "logo_light" ? "logo_light_url" : type === "logo_dark" ? "logo_dark_url" : "favicon_url";
+    await supabase.from("company_settings").update({ [updateField]: null }).eq("id", settings.id);
+    queryClient.invalidateQueries({ queryKey: ["company-settings"] });
+    if (type === "logo_light") setLogoLightPreview(null);
+    if (type === "logo_dark") setLogoDarkPreview(null);
+    if (type === "favicon") setFaviconPreview(null);
+  };
 
   // Permissions management
   const { data: permissions = [] } = useQuery({
@@ -101,6 +136,35 @@ export default function SettingsPage() {
 
   if (isLoading) return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
+  const LogoUploadCard = ({ label, type, preview }: { label: string; type: "logo_light" | "logo_dark" | "favicon"; preview: string | null }) => (
+    <div className="border rounded-lg p-4 space-y-3">
+      <Label>{label}</Label>
+      {preview ? (
+        <div className="relative inline-block">
+          <img src={preview} alt={label} className="h-16 max-w-[200px] object-contain rounded border p-1" />
+          <Button variant="ghost" size="icon" className="absolute -top-2 -right-2 h-6 w-6" onClick={() => removeLogo(type)}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ) : (
+        <div className="h-16 w-32 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground text-xs">
+          No image
+        </div>
+      )}
+      <div>
+        <Input
+          type="file"
+          accept="image/*"
+          className="text-xs"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) uploadLogo(file, type);
+          }}
+        />
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -110,6 +174,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="company">
         <TabsList>
           <TabsTrigger value="company">Company Profile</TabsTrigger>
+          <TabsTrigger value="branding">Branding</TabsTrigger>
           <TabsTrigger value="numbering">Numbering</TabsTrigger>
           <TabsTrigger value="permissions">Role Permissions</TabsTrigger>
         </TabsList>
@@ -144,6 +209,19 @@ export default function SettingsPage() {
               <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? "Saving..." : "Save Settings"}
             </Button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="branding" className="mt-4">
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-base">Logo & Branding</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <LogoUploadCard label="Logo (Light)" type="logo_light" preview={logoLightPreview} />
+                <LogoUploadCard label="Logo (Dark)" type="logo_dark" preview={logoDarkPreview} />
+                <LogoUploadCard label="Favicon" type="favicon" preview={faviconPreview} />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="numbering" className="mt-4">
