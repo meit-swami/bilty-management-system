@@ -101,7 +101,7 @@ export function AppSidebar() {
           </div>
           {!collapsed && (
             <div>
-              <p className="text-sm font-semibold leading-tight text-foreground">{companyName}</p>
+              <p className="text-sm font-semibold leading-tight text-sidebar-primary-foreground">{companyName}</p>
               <p className="text-[10px] leading-tight text-muted-foreground">Transport Management</p>
             </div>
           )}
