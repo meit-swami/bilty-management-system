@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,12 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatINR } from "@/lib/format";
 import { Plus, Trash2, Save, X } from "lucide-react";
@@ -43,9 +38,10 @@ const emptyItem = (): GoodsItem => ({
 
 export default function CreateBilty() {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = !!editId;
   const queryClient = useQueryClient();
 
-  // Realtime subscriptions for master data
   useRealtimeTable("vehicles", ["vehicles-active"]);
   useRealtimeTable("drivers", ["drivers-active"]);
   useRealtimeTable("parties", ["parties-active"]);
@@ -123,13 +119,81 @@ export default function CreateBilty() {
     },
   });
 
+  // Load existing bilty for editing
+  const { data: existingBilty } = useQuery({
+    queryKey: ["bilty-edit", editId],
+    queryFn: async () => {
+      if (!editId) return null;
+      const { data } = await supabase.from("bilties").select("*").eq("id", editId).single();
+      return data;
+    },
+    enabled: !!editId,
+  });
+
+  const { data: existingItems = [] } = useQuery({
+    queryKey: ["bilty-items-edit", editId],
+    queryFn: async () => {
+      if (!editId) return [];
+      const { data } = await supabase.from("bilty_items").select("*").eq("bilty_id", editId);
+      return data || [];
+    },
+    enabled: !!editId,
+  });
+
+  // Populate form when editing
   useEffect(() => {
-    if (!manualNumber && settings) {
+    if (existingBilty) {
+      setManualNumber(true);
+      setBiltyNumber(existingBilty.bilty_number);
+      setBiltyDate(existingBilty.bilty_date);
+      setVehicleId(existingBilty.vehicle_id || "");
+      setVehicleNumber(existingBilty.vehicle_number || "");
+      setDriverId(existingBilty.driver_id || "");
+      setDriverName(existingBilty.driver_name || "");
+      setDriverMobile(existingBilty.driver_mobile || "");
+      setBillNumber(existingBilty.bill_number || "");
+      setBillDate(existingBilty.bill_date || "");
+      setEwayBillNumber(existingBilty.eway_bill_number || "");
+      setConsignorId(existingBilty.consignor_id || "");
+      setConsignorName(existingBilty.consignor_name || "");
+      setConsignorAddress(existingBilty.consignor_address || "");
+      setConsignorGstin(existingBilty.consignor_gstin || "");
+      setShipFrom(existingBilty.ship_from || "");
+      setConsigneeId(existingBilty.consignee_id || "");
+      setConsigneeName(existingBilty.consignee_name || "");
+      setConsigneeAddress(existingBilty.consignee_address || "");
+      setConsigneeGstin(existingBilty.consignee_gstin || "");
+      setShipTo(existingBilty.ship_to || "");
+      setFreightAmount(existingBilty.freight_amount || 0);
+      setLoadingCharges(existingBilty.loading_charges || 0);
+      setUnloadingCharges(existingBilty.unloading_charges || 0);
+      setWeightCharges(existingBilty.weight_charges || 0);
+      setOtherCharges(existingBilty.other_charges || 0);
+      setAdvancePaid(existingBilty.advance_paid || 0);
+      setNotes(existingBilty.notes || "");
+    }
+  }, [existingBilty]);
+
+  useEffect(() => {
+    if (existingItems.length > 0) {
+      setItems(existingItems.map((i) => ({
+        id: i.id,
+        description: i.description,
+        quantity: i.quantity || 0,
+        weight: i.weight || 0,
+        rate: i.rate || 0,
+        amount: i.amount || 0,
+      })));
+    }
+  }, [existingItems]);
+
+  useEffect(() => {
+    if (!isEditMode && !manualNumber && settings) {
       const prefix = settings.bilty_prefix || "BL";
       const num = settings.next_bilty_number || 1;
       setBiltyNumber(`${prefix}-${String(num).padStart(4, "0")}`);
     }
-  }, [manualNumber, settings]);
+  }, [manualNumber, settings, isEditMode]);
 
   const handleVehicleSelect = (id: string) => {
     setVehicleId(id);
@@ -194,6 +258,40 @@ export default function CreateBilty() {
     Number(weightCharges) + Number(otherCharges);
   const balanceDue = totalAmount - Number(advancePaid);
 
+  const biltyPayload = {
+    bilty_number: biltyNumber,
+    bilty_date: biltyDate,
+    vehicle_id: vehicleId || null,
+    vehicle_number: vehicleNumber || null,
+    driver_id: driverId || null,
+    driver_name: driverName || null,
+    driver_mobile: driverMobile || null,
+    bill_number: billNumber || null,
+    bill_date: billDate || null,
+    eway_bill_number: ewayBillNumber || null,
+    consignor_id: consignorId || null,
+    consignor_name: consignorName || null,
+    consignor_address: consignorAddress || null,
+    consignor_gstin: consignorGstin.toUpperCase() || null,
+    ship_from: shipFrom || null,
+    consignee_id: consigneeId || null,
+    consignee_name: consigneeName || null,
+    consignee_address: consigneeAddress || null,
+    consignee_gstin: consigneeGstin.toUpperCase() || null,
+    ship_to: shipTo || null,
+    total_quantity: totalQuantity,
+    total_weight: totalWeight,
+    freight_amount: freightAmount,
+    loading_charges: loadingCharges,
+    unloading_charges: unloadingCharges,
+    weight_charges: weightCharges,
+    other_charges: otherCharges,
+    total_amount: totalAmount,
+    advance_paid: advancePaid,
+    balance_due: balanceDue,
+    notes: notes || null,
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!biltyNumber.trim()) throw new Error("Bilty number is required");
@@ -207,83 +305,82 @@ export default function CreateBilty() {
         throw new Error("Invalid Consignee GSTIN format");
       }
 
-      const { data: bilty, error: biltyError } = await supabase
-        .from("bilties")
-        .insert({
-          bilty_number: biltyNumber,
-          bilty_date: biltyDate,
-          vehicle_id: vehicleId || null,
-          vehicle_number: vehicleNumber || null,
-          driver_id: driverId || null,
-          driver_name: driverName || null,
-          driver_mobile: driverMobile || null,
-          bill_number: billNumber || null,
-          bill_date: billDate || null,
-          eway_bill_number: ewayBillNumber || null,
-          consignor_id: consignorId || null,
-          consignor_name: consignorName || null,
-          consignor_address: consignorAddress || null,
-          consignor_gstin: consignorGstin.toUpperCase() || null,
-          ship_from: shipFrom || null,
-          consignee_id: consigneeId || null,
-          consignee_name: consigneeName || null,
-          consignee_address: consigneeAddress || null,
-          consignee_gstin: consigneeGstin.toUpperCase() || null,
-          ship_to: shipTo || null,
-          total_quantity: totalQuantity,
-          total_weight: totalWeight,
-          freight_amount: freightAmount,
-          loading_charges: loadingCharges,
-          unloading_charges: unloadingCharges,
-          weight_charges: weightCharges,
-          other_charges: otherCharges,
-          total_amount: totalAmount,
-          advance_paid: advancePaid,
-          balance_due: balanceDue,
-          notes: notes || null,
-        })
-        .select("id")
-        .single();
+      if (isEditMode) {
+        // Update existing bilty
+        const { error } = await supabase.from("bilties").update(biltyPayload).eq("id", editId);
+        if (error) throw error;
 
-      if (biltyError) throw biltyError;
+        // Delete old items and re-insert
+        await supabase.from("bilty_items").delete().eq("bilty_id", editId);
+        const validItems = items.filter((i) => i.description.trim());
+        if (validItems.length > 0) {
+          const { error: itemsError } = await supabase.from("bilty_items").insert(
+            validItems.map((i) => ({
+              bilty_id: editId,
+              description: i.description,
+              quantity: i.quantity,
+              weight: i.weight,
+              rate: i.rate,
+              amount: i.amount,
+            }))
+          );
+          if (itemsError) throw itemsError;
+        }
+        return { id: editId };
+      } else {
+        // Create new bilty
+        const { data: bilty, error: biltyError } = await supabase
+          .from("bilties")
+          .insert(biltyPayload)
+          .select("id")
+          .single();
 
-      const validItems = items.filter((i) => i.description.trim());
-      if (validItems.length > 0) {
-        const { error: itemsError } = await supabase.from("bilty_items").insert(
-          validItems.map((i) => ({
-            bilty_id: bilty.id,
-            description: i.description,
-            quantity: i.quantity,
-            weight: i.weight,
-            rate: i.rate,
-            amount: i.amount,
-          }))
-        );
-        if (itemsError) throw itemsError;
+        if (biltyError) throw biltyError;
+
+        const validItems = items.filter((i) => i.description.trim());
+        if (validItems.length > 0) {
+          const { error: itemsError } = await supabase.from("bilty_items").insert(
+            validItems.map((i) => ({
+              bilty_id: bilty.id,
+              description: i.description,
+              quantity: i.quantity,
+              weight: i.weight,
+              rate: i.rate,
+              amount: i.amount,
+            }))
+          );
+          if (itemsError) throw itemsError;
+        }
+
+        if (!manualNumber && settings) {
+          await supabase
+            .from("company_settings")
+            .update({ next_bilty_number: (settings.next_bilty_number || 1) + 1 })
+            .eq("id", settings.id);
+        }
+
+        return bilty;
       }
-
-      if (!manualNumber && settings) {
-        await supabase
-          .from("company_settings")
-          .update({ next_bilty_number: (settings.next_bilty_number || 1) + 1 })
-          .eq("id", settings.id);
-      }
-
-      return bilty;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bilties"] });
       queryClient.invalidateQueries({ queryKey: ["company-settings"] });
-      swalSuccess("Bilty Created", `Bilty ${biltyNumber} has been saved successfully.`);
+      swalSuccess(
+        isEditMode ? "Bilty Updated" : "Bilty Created",
+        `Bilty ${biltyNumber} has been ${isEditMode ? "updated" : "saved"} successfully.`
+      );
       navigate("/bilties");
     },
     onError: (err: Error) => {
-      swalError("Error Creating Bilty", err.message);
+      swalError(isEditMode ? "Error Updating Bilty" : "Error Creating Bilty", err.message);
     },
   });
 
   const handleSave = async () => {
-    const result = await swalConfirm("Save Bilty?", `Create bilty ${biltyNumber}?`);
+    const result = await swalConfirm(
+      isEditMode ? "Update Bilty?" : "Save Bilty?",
+      `${isEditMode ? "Update" : "Create"} bilty ${biltyNumber}?`
+    );
     if (result.isConfirmed) saveMutation.mutate();
   };
 
@@ -298,13 +395,13 @@ export default function CreateBilty() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Create Bilty</h1>
+        <h1 className="text-2xl font-semibold">{isEditMode ? "Edit Bilty" : "Create Bilty"}</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleCancel}>
             <X className="h-4 w-4 mr-1" /> Cancel
           </Button>
           <Button onClick={handleSave} disabled={saveMutation.isPending}>
-            <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? "Saving..." : "Save Bilty"}
+            <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? "Saving..." : isEditMode ? "Update Bilty" : "Save Bilty"}
           </Button>
         </div>
       </div>
@@ -319,16 +416,18 @@ export default function CreateBilty() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Bilty Number</Label>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>Manual</span>
-                  <Switch checked={manualNumber} onCheckedChange={setManualNumber} />
-                </div>
+                {!isEditMode && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Manual</span>
+                    <Switch checked={manualNumber} onCheckedChange={setManualNumber} />
+                  </div>
+                )}
               </div>
               <Input
                 value={biltyNumber}
                 onChange={(e) => setBiltyNumber(e.target.value)}
-                readOnly={!manualNumber}
-                className={!manualNumber ? "bg-muted" : ""}
+                readOnly={isEditMode || !manualNumber}
+                className={isEditMode || !manualNumber ? "bg-muted" : ""}
               />
             </div>
             <div className="space-y-2">
@@ -417,7 +516,6 @@ export default function CreateBilty() {
                 ]}
                 queryKeys={["parties-active"]}
                 onAdded={(id) => {
-                  // Auto-insert party_type consignor
                   supabase.from("parties").update({ party_type: "consignor" }).eq("id", id).then(() => {
                     queryClient.invalidateQueries({ queryKey: ["parties-active"] });
                   });
