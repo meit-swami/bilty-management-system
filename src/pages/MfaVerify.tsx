@@ -16,12 +16,21 @@ export default function MfaVerify() {
 
   useEffect(() => {
     const getFactors = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/login", { replace: true }); return; }
+      
+      // Check if mfa_enabled is set to 0 (bypass)
+      const { data: profileData } = await supabase.from("profiles").select("mfa_enabled").eq("user_id", user.id).single();
+      if ((profileData as any)?.mfa_enabled === 0) {
+        navigate("/", { replace: true });
+        return;
+      }
+
       const { data } = await supabase.auth.mfa.listFactors();
       const verified = data?.totp?.find((f) => f.status === "verified");
       if (verified) {
         setFactorId(verified.id);
       } else {
-        // No MFA enrolled, go to dashboard
         navigate("/", { replace: true });
       }
     };

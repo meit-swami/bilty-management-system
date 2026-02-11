@@ -36,6 +36,7 @@ export function UserProfileMenu() {
   const [totpCode, setTotpCode] = useState("");
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [mfaDbEnabled, setMfaDbEnabled] = useState(true); // from profiles.mfa_enabled
 
   const { data: profile } = useQuery({
     queryKey: ["my-profile-menu", user?.id],
@@ -61,6 +62,13 @@ export function UserProfileMenu() {
     };
     if (user) checkMfa();
   }, [user]);
+
+  // Sync mfa_enabled from DB
+  useEffect(() => {
+    if (profile) {
+      setMfaDbEnabled((profile as any).mfa_enabled === 1);
+    }
+  }, [profile]);
 
   // Login timer
   useEffect(() => {
@@ -265,10 +273,35 @@ export function UserProfileMenu() {
                     <p className="text-xs text-muted-foreground">Microsoft Authenticator / Google Authenticator</p>
                   </div>
                 </div>
-                <Badge variant={mfaEnabled ? "default" : "secondary"}>
-                  {mfaEnabled ? "Enabled" : "Disabled"}
+                <Badge variant={mfaEnabled && mfaDbEnabled ? "default" : "secondary"}>
+                  {mfaEnabled && mfaDbEnabled ? "Enabled" : "Disabled"}
                 </Badge>
               </div>
+
+              {/* Master toggle - allows user to disable 2FA enforcement without unenrolling */}
+              {mfaEnabled && (
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div>
+                    <p className="text-sm font-medium">2FA Enforcement</p>
+                    <p className="text-xs text-muted-foreground">
+                      Toggle OFF to bypass 2FA on login (fallback if app is lost)
+                    </p>
+                  </div>
+                  <Switch
+                    checked={mfaDbEnabled}
+                    onCheckedChange={async (checked) => {
+                      if (!user?.id) return;
+                      const { error } = await supabase.from("profiles").update({
+                        mfa_enabled: checked ? 1 : 0,
+                      } as any).eq("user_id", user.id);
+                      if (error) { swalError(error.message); return; }
+                      setMfaDbEnabled(checked);
+                      queryClient.invalidateQueries({ queryKey: ["my-profile-menu"] });
+                      swalSuccess(checked ? "2FA enforcement enabled" : "2FA enforcement disabled — you can login without code");
+                    }}
+                  />
+                </div>
+              )}
 
               {!mfaEnabled && !mfaEnrolling && (
                 <Button onClick={enrollMfa} className="w-full gap-2">
@@ -307,7 +340,7 @@ export function UserProfileMenu() {
 
               {mfaEnabled && (
                 <Button variant="destructive" onClick={unenrollMfa} className="w-full">
-                  Disable 2FA
+                  Remove 2FA Enrollment
                 </Button>
               )}
             </TabsContent>
