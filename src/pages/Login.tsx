@@ -8,19 +8,23 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Truck, LogIn } from "lucide-react";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (login(username, password)) {
-      navigate("/", { replace: true });
+    setLoading(true);
+    const { error } = await login(email, password);
+    setLoading(false);
+    if (error) {
+      setError(error);
     } else {
-      setError("Invalid username or password");
+      navigate("/", { replace: true });
     }
   };
 
@@ -48,13 +52,14 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                autoComplete="username"
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter email"
+                autoComplete="email"
                 required
               />
             </div>
@@ -71,9 +76,9 @@ export default function Login() {
               />
             </div>
             {error && <p className="text-sm text-destructive font-medium">{error}</p>}
-            <Button type="submit" className="w-full gap-2">
+            <Button type="submit" className="w-full gap-2" disabled={loading}>
               <LogIn className="h-4 w-4" />
-              Sign In
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
           <p className="text-[10px] text-muted-foreground text-center mt-6">

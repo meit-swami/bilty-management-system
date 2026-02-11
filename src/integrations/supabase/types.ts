@@ -238,10 +238,13 @@ export type Database = {
           company_name: string | null
           created_at: string
           email: string | null
+          favicon_url: string | null
           financial_year_start: string | null
           gstin: string | null
           id: string
           invoice_prefix: string | null
+          logo_dark_url: string | null
+          logo_light_url: string | null
           next_bilty_number: number | null
           next_invoice_number: number | null
           phone: string | null
@@ -254,10 +257,13 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           email?: string | null
+          favicon_url?: string | null
           financial_year_start?: string | null
           gstin?: string | null
           id?: string
           invoice_prefix?: string | null
+          logo_dark_url?: string | null
+          logo_light_url?: string | null
           next_bilty_number?: number | null
           next_invoice_number?: number | null
           phone?: string | null
@@ -270,10 +276,13 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           email?: string | null
+          favicon_url?: string | null
           financial_year_start?: string | null
           gstin?: string | null
           id?: string
           invoice_prefix?: string | null
+          logo_dark_url?: string | null
+          logo_light_url?: string | null
           next_bilty_number?: number | null
           next_invoice_number?: number | null
           phone?: string | null
@@ -378,6 +387,30 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
           name?: string
           updated_at?: string
         }
@@ -529,6 +562,36 @@ export type Database = {
         }
         Relationships: []
       }
+      module_permissions: {
+        Row: {
+          can_create: boolean
+          can_delete: boolean
+          can_read: boolean
+          can_update: boolean
+          id: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Insert: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_read?: boolean
+          can_update?: boolean
+          id?: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+        }
+        Update: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_read?: boolean
+          can_update?: boolean
+          id?: string
+          module?: string
+          role?: Database["public"]["Enums"]["app_role"]
+        }
+        Relationships: []
+      }
       parties: {
         Row: {
           address: string | null
@@ -586,6 +649,113 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_groups: {
+        Row: {
+          group_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       vehicles: {
         Row: {
           created_at: string
@@ -621,10 +791,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_module_permission: {
+        Args: { _module: string; _user_id: string }
+        Returns: {
+          can_create: boolean
+          can_delete: boolean
+          can_read: boolean
+          can_update: boolean
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "manager" | "accountant" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -751,6 +937,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "manager", "accountant", "viewer"],
+    },
   },
 } as const
