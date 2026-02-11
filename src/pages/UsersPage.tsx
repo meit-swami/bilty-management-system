@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { swalSuccess, swalError } from "@/lib/swal";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Users, ShieldCheck } from "lucide-react";
 
 const ROLES = [
   { value: "super_admin", label: "Super Admin" },
@@ -52,12 +53,24 @@ type UserRow = {
 export default function UsersPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", role: "viewer" });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", password: "", roles: ["viewer"] as string[] });
 
   // Edit sheet state
   const [editUser, setEditUser] = useState<UserRow | null>(null);
-  const [editForm, setEditForm] = useState({ full_name: "", phone: "", password: "", role: "", is_active: true });
+  const [editForm, setEditForm] = useState({ full_name: "", phone: "", password: "", roles: [] as string[], is_active: true });
   const [permissions, setPermissions] = useState<Record<string, Record<string, boolean>>>({});
+
+  // Bulk assign state
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkRoles, setBulkRoles] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+
+  // Group management
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
+  const [groupUserIds, setGroupUserIds] = useState<string[]>([]);
+  const [groupRoles, setGroupRoles] = useState<string[]>([]);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["profiles-with-roles"],
@@ -71,6 +84,22 @@ export default function UsersPage() {
     },
   });
 
+  const { data: groups = [] } = useQuery({
+    queryKey: ["groups"],
+    queryFn: async () => {
+      const { data } = await supabase.from("groups").select("*").order("name");
+      return data || [];
+    },
+  });
+
+  const { data: userGroups = [] } = useQuery({
+    queryKey: ["user-groups"],
+    queryFn: async () => {
+      const { data } = await supabase.from("user_groups").select("*");
+      return data || [];
+    },
+  });
+
   const { data: allPermissions = [] } = useQuery({
     queryKey: ["module-permissions-all"],
     queryFn: async () => {
@@ -79,22 +108,30 @@ export default function UsersPage() {
     },
   });
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["profiles-with-roles"] });
+    queryClient.invalidateQueries({ queryKey: ["groups"] });
+    queryClient.invalidateQueries({ queryKey: ["user-groups"] });
+    queryClient.invalidateQueries({ queryKey: ["module-permissions-all"] });
+  };
+
   const createUserMutation = useMutation({
     mutationFn: async () => {
       if (!form.full_name.trim()) throw new Error("Name is required");
       if (!form.email.trim()) throw new Error("Email is required");
       if (!form.password || form.password.length < 6) throw new Error("Password must be at least 6 characters");
+      if (form.roles.length === 0) throw new Error("At least one role is required");
       const { data, error } = await supabase.functions.invoke("create-user", {
-        body: { email: form.email, password: form.password, full_name: form.full_name, phone: form.phone, role: form.role },
+        body: { email: form.email, password: form.password, full_name: form.full_name, phone: form.phone, roles: form.roles },
       });
       if (error) throw new Error(error.message || "Failed to create user");
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profiles-with-roles"] });
+      invalidateAll();
       swalSuccess("User created successfully");
       setDialogOpen(false);
-      setForm({ full_name: "", email: "", phone: "", password: "", role: "viewer" });
+      setForm({ full_name: "", email: "", phone: "", password: "", roles: ["viewer"] });
     },
     onError: (err: Error) => swalError(err.message),
   });
@@ -102,13 +139,14 @@ export default function UsersPage() {
   const updateUserMutation = useMutation({
     mutationFn: async () => {
       if (!editUser) throw new Error("No user selected");
+      if (editForm.roles.length === 0) throw new Error("At least one role is required");
       const { data, error } = await supabase.functions.invoke("update-user", {
         body: {
           user_id: editUser.user_id,
           full_name: editForm.full_name,
           phone: editForm.phone,
           password: editForm.password || undefined,
-          role: editForm.role,
+          roles: editForm.roles,
           is_active: editForm.is_active,
         },
       });
@@ -116,7 +154,7 @@ export default function UsersPage() {
       if (data?.error) throw new Error(data.error);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profiles-with-roles"] });
+      invalidateAll();
       swalSuccess("User updated successfully");
       setEditUser(null);
     },
@@ -125,27 +163,26 @@ export default function UsersPage() {
 
   const savePermissionsMutation = useMutation({
     mutationFn: async () => {
-      if (!editForm.role) return;
-      const isSuperAdmin = editForm.role === "super_admin";
-      if (isSuperAdmin) return; // Don't modify super_admin permissions
-
-      for (const mod of MODULES) {
-        const perm = permissions[mod] || {};
-        const existing = allPermissions.find(
-          (p) => p.role === editForm.role && p.module === mod
-        );
-        const payload = {
-          role: editForm.role as any,
-          module: mod,
-          can_create: !!perm.can_create,
-          can_read: !!perm.can_read,
-          can_update: !!perm.can_update,
-          can_delete: !!perm.can_delete,
-        };
-        if (existing) {
-          await supabase.from("module_permissions").update(payload).eq("id", existing.id);
-        } else {
-          await supabase.from("module_permissions").insert(payload);
+      if (editForm.roles.length === 0) return;
+      // Save permissions for each non-super_admin role
+      const rolesToSave = editForm.roles.filter((r) => r !== "super_admin");
+      for (const role of rolesToSave) {
+        for (const mod of MODULES) {
+          const perm = permissions[mod] || {};
+          const existing = allPermissions.find((p) => p.role === role && p.module === mod);
+          const payload = {
+            role: role as any,
+            module: mod,
+            can_create: !!perm.can_create,
+            can_read: !!perm.can_read,
+            can_update: !!perm.can_update,
+            can_delete: !!perm.can_delete,
+          };
+          if (existing) {
+            await supabase.from("module_permissions").update(payload).eq("id", existing.id);
+          } else {
+            await supabase.from("module_permissions").insert(payload);
+          }
         }
       }
     },
@@ -156,68 +193,277 @@ export default function UsersPage() {
     onError: (err: Error) => swalError(err.message),
   });
 
+  // Bulk assign roles to selected users
+  const bulkAssignMutation = useMutation({
+    mutationFn: async () => {
+      if (selectedUserIds.length === 0) throw new Error("Select at least one user");
+      if (bulkRoles.length === 0) throw new Error("Select at least one role");
+      for (const userId of selectedUserIds) {
+        // Delete existing roles
+        await supabase.from("user_roles").delete().eq("user_id", userId);
+        // Insert new roles
+        for (const role of bulkRoles) {
+          await supabase.from("user_roles").insert({ user_id: userId, role: role as any });
+        }
+      }
+    },
+    onSuccess: () => {
+      invalidateAll();
+      swalSuccess(`Roles assigned to ${selectedUserIds.length} user(s)`);
+      setBulkDialogOpen(false);
+      setSelectedUserIds([]);
+      setBulkRoles([]);
+    },
+    onError: (err: Error) => swalError(err.message),
+  });
+
+  // Group: create
+  const createGroupMutation = useMutation({
+    mutationFn: async () => {
+      if (!newGroupName.trim()) throw new Error("Group name is required");
+      const { error } = await supabase.from("groups").insert({ name: newGroupName.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      invalidateAll();
+      swalSuccess("Group created");
+      setNewGroupName("");
+    },
+    onError: (err: Error) => swalError(err.message),
+  });
+
+  // Group: assign users + roles
+  const assignGroupRolesMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedGroupId) throw new Error("Select a group");
+      // Save group members
+      await supabase.from("user_groups").delete().eq("group_id", selectedGroupId);
+      for (const uid of groupUserIds) {
+        await supabase.from("user_groups").insert({ group_id: selectedGroupId, user_id: uid });
+      }
+      // Assign roles to all group members
+      if (groupRoles.length > 0) {
+        for (const uid of groupUserIds) {
+          await supabase.from("user_roles").delete().eq("user_id", uid);
+          for (const role of groupRoles) {
+            await supabase.from("user_roles").insert({ user_id: uid, role: role as any });
+          }
+        }
+      }
+    },
+    onSuccess: () => {
+      invalidateAll();
+      swalSuccess("Group updated & roles assigned");
+      setGroupDialogOpen(false);
+    },
+    onError: (err: Error) => swalError(err.message),
+  });
+
   const openEditSheet = (user: UserRow) => {
-    const role = user.roles[0] || "viewer";
     setEditUser(user);
     setEditForm({
       full_name: user.full_name,
       phone: user.phone || "",
       password: "",
-      role,
+      roles: user.roles.length > 0 ? [...user.roles] : ["viewer"],
       is_active: user.is_active,
     });
-    // Load permissions for this role
-    loadPermissionsForRole(role);
+    loadPermissionsForRoles(user.roles.length > 0 ? user.roles : ["viewer"]);
   };
 
-  const loadPermissionsForRole = (role: string) => {
+  const loadPermissionsForRoles = (roles: string[]) => {
     const perms: Record<string, Record<string, boolean>> = {};
-    const isSuperAdmin = role === "super_admin";
+    const hasSuperAdmin = roles.includes("super_admin");
     for (const mod of MODULES) {
-      if (isSuperAdmin) {
+      if (hasSuperAdmin) {
         perms[mod] = { can_create: true, can_read: true, can_update: true, can_delete: true };
       } else {
-        const found = allPermissions.find((p) => p.role === role && p.module === mod);
-        perms[mod] = found
-          ? { can_create: found.can_create, can_read: found.can_read, can_update: found.can_update, can_delete: found.can_delete }
-          : { can_create: false, can_read: false, can_update: false, can_delete: false };
+        // Merge permissions across all roles (union / OR)
+        const merged = { can_create: false, can_read: false, can_update: false, can_delete: false };
+        for (const role of roles) {
+          const found = allPermissions.find((p) => p.role === role && p.module === mod);
+          if (found) {
+            if (found.can_create) merged.can_create = true;
+            if (found.can_read) merged.can_read = true;
+            if (found.can_update) merged.can_update = true;
+            if (found.can_delete) merged.can_delete = true;
+          }
+        }
+        perms[mod] = merged;
       }
     }
     setPermissions(perms);
   };
 
-  const isSuperAdmin = editForm.role === "super_admin";
+  const toggleRole = (role: string, checked: boolean, target: "create" | "edit" | "bulk" | "group") => {
+    const setter =
+      target === "create" ? (fn: any) => setForm((p) => ({ ...p, roles: fn(p.roles) })) :
+      target === "edit" ? (fn: any) => {
+        setEditForm((p) => {
+          const newRoles = fn(p.roles);
+          loadPermissionsForRoles(newRoles);
+          return { ...p, roles: newRoles };
+        });
+      } :
+      target === "bulk" ? (fn: any) => setBulkRoles((p) => fn(p)) :
+      (fn: any) => setGroupRoles((p) => fn(p));
+
+    setter((prev: string[]) =>
+      checked ? [...prev, role] : prev.filter((r: string) => r !== role)
+    );
+  };
+
+  const RoleCheckboxes = ({ selected, target }: { selected: string[]; target: "create" | "edit" | "bulk" | "group" }) => (
+    <div className="flex flex-wrap gap-3">
+      {ROLES.map((r) => (
+        <label key={r.value} className="flex items-center gap-1.5 text-sm cursor-pointer">
+          <Checkbox
+            checked={selected.includes(r.value)}
+            onCheckedChange={(v) => toggleRole(r.value, !!v, target)}
+          />
+          {r.label}
+        </label>
+      ))}
+    </div>
+  );
+
+  const openGroupDialog = () => {
+    setGroupDialogOpen(true);
+    setGroupRoles([]);
+    setGroupUserIds([]);
+    if (groups.length > 0 && !selectedGroupId) {
+      const gid = groups[0].id;
+      setSelectedGroupId(gid);
+      setGroupUserIds(userGroups.filter((ug) => ug.group_id === gid).map((ug) => ug.user_id));
+    }
+  };
+
+  const onGroupChange = (gid: string) => {
+    setSelectedGroupId(gid);
+    setGroupUserIds(userGroups.filter((ug) => ug.group_id === gid).map((ug) => ug.user_id));
+    setGroupRoles([]);
+  };
+
+  const hasSuperAdmin = editForm.roles.includes("super_admin");
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-semibold">Users & Roles</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-1" /> Add User</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Add New User</DialogTitle></DialogHeader>
-            <div className="space-y-4 pt-2">
-              <div className="space-y-2"><Label>Full Name *</Label><Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} /></div>
-              <div className="space-y-2"><Label>Password *</Label><Input type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} placeholder="Min 6 characters" /></div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={form.role} onValueChange={(v) => setForm((p) => ({ ...p, role: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+        <div className="flex gap-2 flex-wrap">
+          {/* Bulk Assign */}
+          <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline"><ShieldCheck className="h-4 w-4 mr-1" /> Bulk Assign Roles</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader><DialogTitle>Bulk Assign Roles</DialogTitle></DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Select Users</Label>
+                  <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-1">
+                    {users.map((u: any) => (
+                      <label key={u.user_id} className="flex items-center gap-2 text-sm cursor-pointer py-1">
+                        <Checkbox
+                          checked={selectedUserIds.includes(u.user_id)}
+                          onCheckedChange={(v) =>
+                            setSelectedUserIds((p) => v ? [...p, u.user_id] : p.filter((id) => id !== u.user_id))
+                          }
+                        />
+                        {u.full_name} <span className="text-muted-foreground">({u.email})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Assign Roles</Label>
+                  <RoleCheckboxes selected={bulkRoles} target="bulk" />
+                </div>
+                <Button className="w-full" onClick={() => bulkAssignMutation.mutate()} disabled={bulkAssignMutation.isPending}>
+                  {bulkAssignMutation.isPending ? "Assigning..." : `Assign to ${selectedUserIds.length} User(s)`}
+                </Button>
               </div>
-              <Button className="w-full" onClick={() => createUserMutation.mutate()} disabled={createUserMutation.isPending}>
-                {createUserMutation.isPending ? "Creating..." : "Create User"}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+
+          {/* Group Assign */}
+          <Dialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={openGroupDialog}><Users className="h-4 w-4 mr-1" /> Groups</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>User Groups & Role Assignment</DialogTitle></DialogHeader>
+              <div className="space-y-4 pt-2">
+                {/* Create group */}
+                <div className="flex gap-2">
+                  <Input placeholder="New group name" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
+                  <Button size="sm" onClick={() => createGroupMutation.mutate()} disabled={createGroupMutation.isPending}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                {groups.length > 0 && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Select Group</Label>
+                      <Select value={selectedGroupId} onValueChange={onGroupChange}>
+                        <SelectTrigger><SelectValue placeholder="Choose group" /></SelectTrigger>
+                        <SelectContent>
+                          {groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Members</Label>
+                      <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
+                        {users.map((u: any) => (
+                          <label key={u.user_id} className="flex items-center gap-2 text-sm cursor-pointer py-1">
+                            <Checkbox
+                              checked={groupUserIds.includes(u.user_id)}
+                              onCheckedChange={(v) =>
+                                setGroupUserIds((p) => v ? [...p, u.user_id] : p.filter((id) => id !== u.user_id))
+                              }
+                            />
+                            {u.full_name}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Assign Roles to All Members</Label>
+                      <RoleCheckboxes selected={groupRoles} target="group" />
+                    </div>
+                    <Button className="w-full" onClick={() => assignGroupRolesMutation.mutate()} disabled={assignGroupRolesMutation.isPending}>
+                      {assignGroupRolesMutation.isPending ? "Saving..." : "Save Group & Assign Roles"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Add User */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-1" /> Add User</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add New User</DialogTitle></DialogHeader>
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2"><Label>Full Name *</Label><Input value={form.full_name} onChange={(e) => setForm((p) => ({ ...p, full_name: e.target.value }))} /></div>
+                <div className="space-y-2"><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} /></div>
+                <div className="space-y-2"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} /></div>
+                <div className="space-y-2"><Label>Password *</Label><Input type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} placeholder="Min 6 characters" /></div>
+                <div className="space-y-2">
+                  <Label>Roles *</Label>
+                  <RoleCheckboxes selected={form.roles} target="create" />
+                </div>
+                <Button className="w-full" onClick={() => createUserMutation.mutate()} disabled={createUserMutation.isPending}>
+                  {createUserMutation.isPending ? "Creating..." : "Create User"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -282,7 +528,6 @@ export default function UsersPage() {
               <TabsTrigger value="permissions" className="flex-1">Permissions</TabsTrigger>
             </TabsList>
 
-            {/* Profile Tab */}
             <TabsContent value="profile" className="space-y-4 pt-2">
               <div className="space-y-2">
                 <Label>Full Name</Label>
@@ -301,13 +546,8 @@ export default function UsersPage() {
                 <Input type="password" value={editForm.password} onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))} placeholder="Leave blank to keep current" />
               </div>
               <div className="space-y-2">
-                <Label>Role</Label>
-                <Select value={editForm.role} onValueChange={(v) => { setEditForm((p) => ({ ...p, role: v })); loadPermissionsForRole(v); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <Label>Roles</Label>
+                <RoleCheckboxes selected={editForm.roles} target="edit" />
               </div>
               <div className="flex items-center justify-between">
                 <Label>Active</Label>
@@ -318,9 +558,8 @@ export default function UsersPage() {
               </Button>
             </TabsContent>
 
-            {/* Permissions Tab */}
             <TabsContent value="permissions" className="pt-2">
-              {isSuperAdmin && (
+              {hasSuperAdmin && (
                 <div className="mb-4 rounded-md bg-muted p-3 text-sm text-muted-foreground">
                   Super Admin has full access to all modules. Permissions cannot be modified.
                 </div>
@@ -344,7 +583,7 @@ export default function UsersPage() {
                           <TableCell key={key} className="text-center">
                             <Switch
                               checked={permissions[mod]?.[key] ?? false}
-                              disabled={isSuperAdmin}
+                              disabled={hasSuperAdmin}
                               onCheckedChange={(v) =>
                                 setPermissions((prev) => ({
                                   ...prev,
@@ -360,7 +599,7 @@ export default function UsersPage() {
                   </TableBody>
                 </Table>
               </div>
-              {!isSuperAdmin && (
+              {!hasSuperAdmin && (
                 <Button className="w-full mt-4" onClick={() => savePermissionsMutation.mutate()} disabled={savePermissionsMutation.isPending}>
                   {savePermissionsMutation.isPending ? "Saving..." : "Save Permissions"}
                 </Button>
