@@ -299,26 +299,38 @@ export type Database = {
       }
       chat_messages: {
         Row: {
+          attachment_name: string | null
+          attachment_type: string | null
+          attachment_url: string | null
           channel: string
           created_at: string
           id: string
           message: string
+          recipient_id: string | null
           sender_id: string
           sender_name: string
         }
         Insert: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           channel?: string
           created_at?: string
           id?: string
           message: string
+          recipient_id?: string | null
           sender_id: string
           sender_name?: string
         }
         Update: {
+          attachment_name?: string | null
+          attachment_type?: string | null
+          attachment_url?: string | null
           channel?: string
           created_at?: string
           id?: string
           message?: string
+          recipient_id?: string | null
           sender_id?: string
           sender_name?: string
         }
@@ -1300,6 +1312,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_presence: {
+        Row: {
+          id: string
+          is_online: boolean
+          last_seen: string
+          user_email: string | null
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          id?: string
+          is_online?: boolean
+          last_seen?: string
+          user_email?: string | null
+          user_id: string
+          user_name?: string
+        }
+        Update: {
+          id?: string
+          is_online?: boolean
+          last_seen?: string
+          user_email?: string | null
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
