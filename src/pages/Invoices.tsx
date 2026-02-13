@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,14 +12,20 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { formatINR, formatDate } from "@/lib/format";
-import { PlusCircle, X, FileDown, Link2 } from "lucide-react";
+import { PlusCircle, X, FileDown, Link2, Pencil, Trash2 } from "lucide-react";
 import { useRealtimeTable } from "@/hooks/use-realtime-query";
 import { generateInvoicePDF } from "@/lib/pdf";
 import { toast } from "@/hooks/use-toast";
 
 export default function Invoices() {
   useRealtimeTable("invoices", ["invoices"]);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -44,6 +50,32 @@ export default function Invoices() {
       const { data } = await supabase.from("company_settings").select("*").maybeSingle();
       return data;
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (inv: any) => {
+      // Get associated bilty IDs to un-bill them
+      const { data: invItems } = await supabase.from("invoice_items").select("bilty_id").eq("invoice_id", inv.id);
+      const biltyIds = (invItems || []).map((i) => i.bilty_id);
+
+      // Delete invoice items first
+      await supabase.from("invoice_items").delete().eq("invoice_id", inv.id);
+      // Delete the invoice
+      const { error } = await supabase.from("invoices").delete().eq("id", inv.id);
+      if (error) throw error;
+
+      // Mark bilties back as unbilled
+      if (biltyIds.length > 0) {
+        await supabase.from("bilties").update({ status: "unbilled" }).in("id", biltyIds);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["bilties"] });
+      queryClient.invalidateQueries({ queryKey: ["unbilled-bilties"] });
+      toast({ title: "Invoice deleted" });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
   const totalAmount = invoices.reduce((s, i) => s + Number(i.total_amount || 0), 0);
@@ -162,7 +194,7 @@ export default function Invoices() {
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
+                <TableHead className="w-36">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -193,12 +225,30 @@ export default function Invoices() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => navigate(`/invoices/edit/${inv.id}`)} title="Edit">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleDownloadPDF(inv)} title="Download PDF">
                             <FileDown className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" onClick={() => handleCopyPublicLink(inv)} title="Copy public link">
                             <Link2 className="h-4 w-4" />
                           </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" title="Delete"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete invoice {inv.invoice_number}?</AlertDialogTitle>
+                                <AlertDialogDescription>This will unbill associated bilties. This action cannot be undone.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteMutation.mutate(inv)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
