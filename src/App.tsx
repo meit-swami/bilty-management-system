@@ -55,6 +55,7 @@ function AppRoutes() {
         <Route path="/parties" element={<Parties />} />
         <Route path="/invoices" element={<Invoices />} />
         <Route path="/invoices/create" element={<CreateInvoice />} />
+        <Route path="/invoices/edit/:id" element={<CreateInvoice />} />
         <Route path="/proposals" element={<Proposals />} />
         <Route path="/proposals/create" element={<CreateProposal />} />
         <Route path="/payments" element={<PaymentRecords />} />

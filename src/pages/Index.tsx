@@ -70,9 +70,18 @@ export default function Dashboard() {
     },
   });
 
+  // Outstanding = sum of invoice balance_due (not bilty balance_due)
+  const { data: allInvoices = [] } = useQuery({
+    queryKey: ["invoices-kpi"],
+    queryFn: async () => {
+      const { data } = await supabase.from("invoices").select("balance_due");
+      return data || [];
+    },
+  });
+
   const totalBilties = allBilties.length;
   const totalRevenue = allBilties.reduce((s, b) => s + Number(b.total_amount || 0), 0);
-  const totalOutstanding = allBilties.reduce((s, b) => s + Number(b.balance_due || 0), 0);
+  const totalOutstanding = allInvoices.reduce((s, i) => s + Number(i.balance_due || 0), 0);
   const totalAdvance = allBilties.reduce((s, b) => s + Number(b.advance_paid || 0), 0);
 
   const kpis = [
@@ -94,9 +103,7 @@ export default function Dashboard() {
         <button
           onClick={toggleAnimations}
           className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-            animationsOn
-              ? "bg-primary/10 text-primary"
-              : "bg-muted text-muted-foreground"
+            animationsOn ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
           }`}
           title={animationsOn ? "Turn off animations" : "Turn on animations"}
         >
@@ -154,9 +161,7 @@ export default function Dashboard() {
               </TableHeader>
               <TableBody>
                 {bilties.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">No bilties yet</TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No bilties yet</TableCell></TableRow>
                 ) : (
                   bilties.map((b) => (
                     <TableRow key={b.id}>
@@ -188,9 +193,7 @@ export default function Dashboard() {
               </TableHeader>
               <TableBody>
                 {invoices.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">No invoices yet</TableCell>
-                  </TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No invoices yet</TableCell></TableRow>
                 ) : (
                   invoices.map((inv) => (
                     <TableRow key={inv.id}>

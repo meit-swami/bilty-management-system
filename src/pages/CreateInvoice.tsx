@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,19 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatINR, formatDate } from "@/lib/format";
 import { Save, X } from "lucide-react";
@@ -31,6 +22,8 @@ import { useRealtimeTable } from "@/hooks/use-realtime-query";
 
 export default function CreateInvoice() {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id: string }>();
+  const isEditMode = !!editId;
   const queryClient = useQueryClient();
 
   useRealtimeTable("parties", ["parties-active"]);
@@ -62,21 +55,99 @@ export default function CreateInvoice() {
     },
   });
 
-  const { data: unbilledBilties = [] } = useQuery({
-    queryKey: ["unbilled-bilties"],
+  // For edit mode: load existing invoice
+  const { data: existingInvoice } = useQuery({
+    queryKey: ["invoice-edit", editId],
     queryFn: async () => {
-      const { data } = await supabase.from("bilties").select("*").eq("status", "unbilled").order("bilty_date", { ascending: false });
-      return data || [];
+      if (!editId) return null;
+      const { data } = await supabase.from("invoices").select("*").eq("id", editId).single();
+      return data;
     },
+    enabled: !!editId,
   });
 
+  const { data: existingInvItems = [] } = useQuery({
+    queryKey: ["invoice-items-edit", editId],
+    queryFn: async () => {
+      if (!editId) return [];
+      const { data } = await supabase.from("invoice_items").select("*").eq("invoice_id", editId);
+      return data || [];
+    },
+    enabled: !!editId,
+  });
+
+  // Unbilled bilties + bilties from current invoice (for edit mode)
+  const { data: unbilledBilties = [] } = useQuery({
+    queryKey: ["unbilled-bilties", editId, partyId],
+    queryFn: async () => {
+      const editBiltyIds = existingInvItems.map((i) => i.bilty_id);
+      
+      let query = supabase.from("bilties").select("*").order("bilty_date", { ascending: false });
+      
+      if (editBiltyIds.length > 0) {
+        // Show unbilled + bilties belonging to this invoice
+        query = query.or(`status.eq.unbilled,id.in.(${editBiltyIds.join(",")})`);
+      } else {
+        query = query.eq("status", "unbilled");
+      }
+      
+      const { data } = await query;
+      let result = data || [];
+      
+      // Filter by party if selected (match consignor or consignee name)
+      if (partyId) {
+        const party = parties.find(p => p.id === partyId);
+        if (party) {
+          result = result.filter(b => 
+            b.consignor_name === party.name || 
+            b.consignee_name === party.name ||
+            b.consignor_id === partyId ||
+            b.consignee_id === partyId ||
+            editBiltyIds.includes(b.id)
+          );
+        }
+      }
+      
+      return result;
+    },
+    enabled: !editId || existingInvItems.length >= 0,
+  });
+
+  // Populate form for edit mode
   useEffect(() => {
-    if (settings) {
+    if (existingInvoice) {
+      setInvoiceNumber(existingInvoice.invoice_number);
+      setInvoiceDate(existingInvoice.invoice_date);
+      setPartyId(existingInvoice.party_id || "");
+      setPartyName(existingInvoice.party_name || "");
+      setPartyGstin(existingInvoice.party_gstin || "");
+      setPaymentStatus(existingInvoice.payment_status);
+      setAmountPaid(existingInvoice.amount_paid || 0);
+      const igst = Number(existingInvoice.igst_rate || 0);
+      const cgst = Number(existingInvoice.cgst_rate || 0);
+      if (igst > 0) {
+        setGstType("igst");
+        setGstRate(igst);
+      } else {
+        setGstType("cgst_sgst");
+        setGstRate(cgst * 2);
+      }
+    }
+  }, [existingInvoice]);
+
+  useEffect(() => {
+    if (existingInvItems.length > 0) {
+      setSelectedBilties(existingInvItems.map(i => i.bilty_id));
+    }
+  }, [existingInvItems]);
+
+  useEffect(() => {
+    if (!isEditMode && settings) {
       const prefix = settings.invoice_prefix || "INV";
       const num = settings.next_invoice_number || 1;
       setInvoiceNumber(`${prefix}-${String(num).padStart(4, "0")}`);
     }
-  }, [settings]);
+  }, [settings, isEditMode]);
 
   const handlePartySelect = (id: string) => {
     setPartyId(id);
@@ -89,6 +160,8 @@ export default function CreateInvoice() {
         setGstType(partyState === settings.state_code ? "cgst_sgst" : "igst");
       }
     }
+    // Reset bilty selection when party changes (except in edit mode)
+    if (!isEditMode) setSelectedBilties([]);
   };
 
   const toggleBilty = (id: string) => {
@@ -110,7 +183,7 @@ export default function CreateInvoice() {
       if (!invoiceNumber.trim()) throw new Error("Invoice number is required");
       if (selectedBilties.length === 0) throw new Error("Select at least one bilty");
 
-      const { data: invoice, error } = await supabase.from("invoices").insert({
+      const invoicePayload = {
         invoice_number: invoiceNumber,
         invoice_date: invoiceDate,
         party_id: partyId || null,
@@ -127,42 +200,72 @@ export default function CreateInvoice() {
         amount_paid: amountPaid,
         balance_due: balanceDue,
         payment_status: paymentStatus,
-      }).select("id").single();
+      };
 
-      if (error) throw error;
+      if (isEditMode) {
+        // Get old bilty IDs to unbill them
+        const oldBiltyIds = existingInvItems.map(i => i.bilty_id);
+        
+        const { error } = await supabase.from("invoices").update(invoicePayload).eq("id", editId);
+        if (error) throw error;
 
-      const { error: itemsError } = await supabase.from("invoice_items").insert(
-        selectedBilties.map((biltyId) => ({
-          invoice_id: invoice.id,
-          bilty_id: biltyId,
-          amount: Number(unbilledBilties.find((b) => b.id === biltyId)?.total_amount || 0),
-        }))
-      );
-      if (itemsError) throw itemsError;
+        // Delete old items
+        await supabase.from("invoice_items").delete().eq("invoice_id", editId);
+        
+        // Insert new items
+        await supabase.from("invoice_items").insert(
+          selectedBilties.map((biltyId) => ({
+            invoice_id: editId!,
+            bilty_id: biltyId,
+            amount: Number(unbilledBilties.find((b) => b.id === biltyId)?.total_amount || 0),
+          }))
+        );
 
-      await supabase.from("bilties").update({ status: "billed" }).in("id", selectedBilties);
+        // Unbill old bilties that are no longer selected
+        const removedBilties = oldBiltyIds.filter(id => !selectedBilties.includes(id));
+        if (removedBilties.length > 0) {
+          await supabase.from("bilties").update({ status: "unbilled" }).in("id", removedBilties);
+        }
+        // Bill newly selected bilties
+        await supabase.from("bilties").update({ status: "billed" }).in("id", selectedBilties);
 
-      if (settings) {
-        await supabase.from("company_settings")
-          .update({ next_invoice_number: (settings.next_invoice_number || 1) + 1 })
-          .eq("id", settings.id);
+        return { id: editId };
+      } else {
+        const { data: invoice, error } = await supabase.from("invoices").insert(invoicePayload).select("id").single();
+        if (error) throw error;
+
+        await supabase.from("invoice_items").insert(
+          selectedBilties.map((biltyId) => ({
+            invoice_id: invoice.id,
+            bilty_id: biltyId,
+            amount: Number(unbilledBilties.find((b) => b.id === biltyId)?.total_amount || 0),
+          }))
+        );
+
+        await supabase.from("bilties").update({ status: "billed" }).in("id", selectedBilties);
+
+        if (settings) {
+          await supabase.from("company_settings")
+            .update({ next_invoice_number: (settings.next_invoice_number || 1) + 1 })
+            .eq("id", settings.id);
+        }
+
+        return invoice;
       }
-
-      return invoice;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       queryClient.invalidateQueries({ queryKey: ["unbilled-bilties"] });
       queryClient.invalidateQueries({ queryKey: ["bilties"] });
       queryClient.invalidateQueries({ queryKey: ["company-settings"] });
-      swalSuccess("Invoice Created", `Invoice ${invoiceNumber} saved successfully.`);
+      swalSuccess(isEditMode ? "Invoice Updated" : "Invoice Created", `Invoice ${invoiceNumber} saved successfully.`);
       navigate("/invoices");
     },
-    onError: (err: Error) => swalError("Error Creating Invoice", err.message),
+    onError: (err: Error) => swalError("Error", err.message),
   });
 
   const handleSave = async () => {
-    const result = await swalConfirm("Save Invoice?", `Create invoice ${invoiceNumber}?`);
+    const result = await swalConfirm(isEditMode ? "Update Invoice?" : "Save Invoice?", `${isEditMode ? "Update" : "Create"} invoice ${invoiceNumber}?`);
     if (result.isConfirmed) saveMutation.mutate();
   };
 
@@ -174,11 +277,11 @@ export default function CreateInvoice() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Create Invoice</h1>
+        <h1 className="text-2xl font-semibold">{isEditMode ? "Edit Invoice" : "Create Invoice"}</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleCancel}><X className="h-4 w-4 mr-1" /> Cancel</Button>
           <Button onClick={handleSave} disabled={saveMutation.isPending}>
-            <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? "Saving..." : "Save Invoice"}
+            <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? "Saving..." : isEditMode ? "Update Invoice" : "Save Invoice"}
           </Button>
         </div>
       </div>
@@ -187,7 +290,10 @@ export default function CreateInvoice() {
         <CardHeader className="pb-3"><CardTitle className="text-base">Invoice Details</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2"><Label>Invoice Number</Label><Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Invoice Number</Label>
+              <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} readOnly={isEditMode} className={isEditMode ? "bg-muted" : ""} />
+            </div>
             <div className="space-y-2"><Label>Invoice Date</Label><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Party</Label>
@@ -223,7 +329,11 @@ export default function CreateInvoice() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Select Unbilled Bilties</CardTitle></CardHeader>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">
+            {partyId ? `Unbilled Bilties for ${partyName}` : "Select Unbilled Bilties"}
+          </CardTitle>
+        </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -238,7 +348,9 @@ export default function CreateInvoice() {
             </TableHeader>
             <TableBody>
               {unbilledBilties.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No unbilled bilties</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  {partyId ? "No unbilled bilties for this party" : "No unbilled bilties"}
+                </TableCell></TableRow>
               ) : (
                 unbilledBilties.map((b) => (
                   <TableRow key={b.id} className={selectedBilties.includes(b.id) ? "bg-muted/50" : ""}>

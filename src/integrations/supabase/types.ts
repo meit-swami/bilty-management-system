@@ -256,6 +256,41 @@ export type Database = {
           },
         ]
       }
+      bilty_bills: {
+        Row: {
+          bill_date: string | null
+          bill_number: string | null
+          bilty_id: string
+          created_at: string
+          eway_bill_number: string | null
+          id: string
+        }
+        Insert: {
+          bill_date?: string | null
+          bill_number?: string | null
+          bilty_id: string
+          created_at?: string
+          eway_bill_number?: string | null
+          id?: string
+        }
+        Update: {
+          bill_date?: string | null
+          bill_number?: string | null
+          bilty_id?: string
+          created_at?: string
+          eway_bill_number?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bilty_bills_bilty_id_fkey"
+            columns: ["bilty_id"]
+            isOneToOne: false
+            referencedRelation: "bilties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bilty_items: {
         Row: {
           amount: number | null

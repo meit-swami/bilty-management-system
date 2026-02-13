@@ -9,9 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { formatINR } from "@/lib/format";
 import { Plus, Trash2, Save, X } from "lucide-react";
 import { SelectWithAdd } from "@/components/SelectWithAdd";
@@ -27,6 +34,13 @@ interface GoodsItem {
   amount: number;
 }
 
+interface BillEntry {
+  id: string;
+  bill_number: string;
+  bill_date: string;
+  eway_bill_number: string;
+}
+
 const emptyItem = (): GoodsItem => ({
   id: crypto.randomUUID(),
   description: "",
@@ -35,6 +49,36 @@ const emptyItem = (): GoodsItem => ({
   rate: 0,
   amount: 0,
 });
+
+const emptyBill = (): BillEntry => ({
+  id: crypto.randomUUID(),
+  bill_number: "",
+  bill_date: "",
+  eway_bill_number: "",
+});
+
+// Full party form interface (matching Parties page)
+interface PartyForm {
+  name: string;
+  party_type: string;
+  gstin: string;
+  contact_person: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  credit_limit: number;
+  payment_terms: number;
+  is_active: boolean;
+}
+
+const emptyPartyForm: PartyForm = {
+  name: "", party_type: "consignor", gstin: "", contact_person: "",
+  phone: "", email: "", address: "", city: "", state: "", pincode: "",
+  credit_limit: 0, payment_terms: 30, is_active: true,
+};
 
 export default function CreateBilty() {
   const navigate = useNavigate();
@@ -56,10 +100,8 @@ export default function CreateBilty() {
   const [driverName, setDriverName] = useState("");
   const [driverMobile, setDriverMobile] = useState("");
 
-  // Bill & E-way
-  const [billNumber, setBillNumber] = useState("");
-  const [billDate, setBillDate] = useState("");
-  const [ewayBillNumber, setEwayBillNumber] = useState("");
+  // Multiple bills
+  const [bills, setBills] = useState<BillEntry[]>([emptyBill()]);
 
   // Party details
   const [consignorId, setConsignorId] = useState("");
@@ -85,6 +127,14 @@ export default function CreateBilty() {
   const [otherCharges, setOtherCharges] = useState(0);
   const [advancePaid, setAdvancePaid] = useState(0);
   const [notes, setNotes] = useState("");
+
+  // Lock state for billed bilties
+  const [isBilled, setIsBilled] = useState(false);
+
+  // Full party add dialog
+  const [partyDialogOpen, setPartyDialogOpen] = useState(false);
+  const [partyDialogType, setPartyDialogType] = useState<"consignor" | "consignee">("consignor");
+  const [partyForm, setPartyForm] = useState<PartyForm>({ ...emptyPartyForm });
 
   // Fetch master data
   const { data: vehicles = [] } = useQuery({
@@ -140,6 +190,16 @@ export default function CreateBilty() {
     enabled: !!editId,
   });
 
+  const { data: existingBills = [] } = useQuery({
+    queryKey: ["bilty-bills-edit", editId],
+    queryFn: async () => {
+      if (!editId) return [];
+      const { data } = await supabase.from("bilty_bills").select("*").eq("bilty_id", editId);
+      return data || [];
+    },
+    enabled: !!editId,
+  });
+
   // Populate form when editing
   useEffect(() => {
     if (existingBilty) {
@@ -151,9 +211,6 @@ export default function CreateBilty() {
       setDriverId(existingBilty.driver_id || "");
       setDriverName(existingBilty.driver_name || "");
       setDriverMobile(existingBilty.driver_mobile || "");
-      setBillNumber(existingBilty.bill_number || "");
-      setBillDate(existingBilty.bill_date || "");
-      setEwayBillNumber(existingBilty.eway_bill_number || "");
       setConsignorId(existingBilty.consignor_id || "");
       setConsignorName(existingBilty.consignor_name || "");
       setConsignorAddress(existingBilty.consignor_address || "");
@@ -171,6 +228,12 @@ export default function CreateBilty() {
       setOtherCharges(existingBilty.other_charges || 0);
       setAdvancePaid(existingBilty.advance_paid || 0);
       setNotes(existingBilty.notes || "");
+      setIsBilled(existingBilty.status === "billed");
+
+      // Legacy single bill fields → bills array (if no bilty_bills exist)
+      if (existingBilty.bill_number || existingBilty.bill_date || existingBilty.eway_bill_number) {
+        // Will be overridden by existingBills if they exist
+      }
     }
   }, [existingBilty]);
 
@@ -186,6 +249,25 @@ export default function CreateBilty() {
       })));
     }
   }, [existingItems]);
+
+  useEffect(() => {
+    if (existingBills.length > 0) {
+      setBills(existingBills.map(b => ({
+        id: b.id,
+        bill_number: b.bill_number || "",
+        bill_date: b.bill_date || "",
+        eway_bill_number: b.eway_bill_number || "",
+      })));
+    } else if (existingBilty) {
+      // Fallback: use legacy single bill fields
+      setBills([{
+        id: crypto.randomUUID(),
+        bill_number: existingBilty.bill_number || "",
+        bill_date: existingBilty.bill_date || "",
+        eway_bill_number: existingBilty.eway_bill_number || "",
+      }]);
+    }
+  }, [existingBills, existingBilty]);
 
   useEffect(() => {
     if (!isEditMode && !manualNumber && settings) {
@@ -232,6 +314,35 @@ export default function CreateBilty() {
     }
   };
 
+  const openPartyDialog = (type: "consignor" | "consignee") => {
+    setPartyDialogType(type);
+    setPartyForm({ ...emptyPartyForm, party_type: type });
+    setPartyDialogOpen(true);
+  };
+
+  const savePartyMutation = useMutation({
+    mutationFn: async () => {
+      if (!partyForm.name.trim()) throw new Error("Name is required");
+      const payload = { ...partyForm, gstin: partyForm.gstin.toUpperCase() || null };
+      const { data, error } = await supabase.from("parties").insert(payload).select("id").single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["parties-active"] });
+      swalSuccess("Party added successfully");
+      setPartyDialogOpen(false);
+      // Auto-select
+      setTimeout(() => {
+        if (partyDialogType === "consignor") handleConsignorSelect(data.id);
+        else handleConsigneeSelect(data.id);
+      }, 500);
+    },
+    onError: (err: Error) => swalError("Error", err.message),
+  });
+
+  const updatePartyField = (field: keyof PartyForm, value: any) => setPartyForm((prev) => ({ ...prev, [field]: value }));
+
   const updateItem = (id: string, field: keyof GoodsItem, value: string | number) => {
     setItems((prev) =>
       prev.map((item) => {
@@ -251,6 +362,15 @@ export default function CreateBilty() {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const addBill = () => setBills((prev) => [...prev, emptyBill()]);
+  const removeBill = (id: string) => {
+    if (bills.length === 1) return;
+    setBills((prev) => prev.filter((b) => b.id !== id));
+  };
+  const updateBill = (id: string, field: keyof BillEntry, value: string) => {
+    setBills((prev) => prev.map((b) => b.id === id ? { ...b, [field]: value } : b));
+  };
+
   const totalQuantity = items.reduce((s, i) => s + Number(i.quantity), 0);
   const totalWeight = items.reduce((s, i) => s + Number(i.weight), 0);
   const totalAmount =
@@ -266,9 +386,9 @@ export default function CreateBilty() {
     driver_id: driverId || null,
     driver_name: driverName || null,
     driver_mobile: driverMobile || null,
-    bill_number: billNumber || null,
-    bill_date: billDate || null,
-    eway_bill_number: ewayBillNumber || null,
+    bill_number: bills[0]?.bill_number || null,
+    bill_date: bills[0]?.bill_date || null,
+    eway_bill_number: bills[0]?.eway_bill_number || null,
     consignor_id: consignorId || null,
     consignor_name: consignorName || null,
     consignor_address: consignorAddress || null,
@@ -305,52 +425,24 @@ export default function CreateBilty() {
         throw new Error("Invalid Consignee GSTIN format");
       }
 
+      let biltyId: string;
+
       if (isEditMode) {
-        // Update existing bilty
         const { error } = await supabase.from("bilties").update(biltyPayload).eq("id", editId);
         if (error) throw error;
+        biltyId = editId!;
 
         // Delete old items and re-insert
         await supabase.from("bilty_items").delete().eq("bilty_id", editId);
-        const validItems = items.filter((i) => i.description.trim());
-        if (validItems.length > 0) {
-          const { error: itemsError } = await supabase.from("bilty_items").insert(
-            validItems.map((i) => ({
-              bilty_id: editId,
-              description: i.description,
-              quantity: i.quantity,
-              weight: i.weight,
-              rate: i.rate,
-              amount: i.amount,
-            }))
-          );
-          if (itemsError) throw itemsError;
-        }
-        return { id: editId };
+        await supabase.from("bilty_bills").delete().eq("bilty_id", editId);
       } else {
-        // Create new bilty
         const { data: bilty, error: biltyError } = await supabase
           .from("bilties")
           .insert(biltyPayload)
           .select("id")
           .single();
-
         if (biltyError) throw biltyError;
-
-        const validItems = items.filter((i) => i.description.trim());
-        if (validItems.length > 0) {
-          const { error: itemsError } = await supabase.from("bilty_items").insert(
-            validItems.map((i) => ({
-              bilty_id: bilty.id,
-              description: i.description,
-              quantity: i.quantity,
-              weight: i.weight,
-              rate: i.rate,
-              amount: i.amount,
-            }))
-          );
-          if (itemsError) throw itemsError;
-        }
+        biltyId = bilty.id;
 
         if (!manualNumber && settings) {
           await supabase
@@ -358,9 +450,38 @@ export default function CreateBilty() {
             .update({ next_bilty_number: (settings.next_bilty_number || 1) + 1 })
             .eq("id", settings.id);
         }
-
-        return bilty;
       }
+
+      // Insert items
+      const validItems = items.filter((i) => i.description.trim());
+      if (validItems.length > 0) {
+        const { error: itemsError } = await supabase.from("bilty_items").insert(
+          validItems.map((i) => ({
+            bilty_id: biltyId,
+            description: i.description,
+            quantity: i.quantity,
+            weight: i.weight,
+            rate: i.rate,
+            amount: i.amount,
+          }))
+        );
+        if (itemsError) throw itemsError;
+      }
+
+      // Insert bills
+      const validBills = bills.filter(b => b.bill_number || b.bill_date || b.eway_bill_number);
+      if (validBills.length > 0) {
+        await supabase.from("bilty_bills").insert(
+          validBills.map(b => ({
+            bilty_id: biltyId,
+            bill_number: b.bill_number || null,
+            bill_date: b.bill_date || null,
+            eway_bill_number: b.eway_bill_number || null,
+          }))
+        );
+      }
+
+      return { id: biltyId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bilties"] });
@@ -395,12 +516,15 @@ export default function CreateBilty() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">{isEditMode ? "Edit Bilty" : "Create Bilty"}</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">{isEditMode ? "Edit Bilty" : "Create Bilty"}</h1>
+          {isBilled && <Badge variant="destructive" className="mt-1">This bilty is invoiced — editing is locked</Badge>}
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleCancel}>
             <X className="h-4 w-4 mr-1" /> Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saveMutation.isPending}>
+          <Button onClick={handleSave} disabled={saveMutation.isPending || isBilled}>
             <Save className="h-4 w-4 mr-1" /> {saveMutation.isPending ? "Saving..." : isEditMode ? "Update Bilty" : "Save Bilty"}
           </Button>
         </div>
@@ -428,11 +552,12 @@ export default function CreateBilty() {
                 onChange={(e) => setBiltyNumber(e.target.value)}
                 readOnly={isEditMode || !manualNumber}
                 className={isEditMode || !manualNumber ? "bg-muted" : ""}
+                disabled={isBilled}
               />
             </div>
             <div className="space-y-2">
               <Label>Bilty Date</Label>
-              <Input type="date" value={biltyDate} onChange={(e) => setBiltyDate(e.target.value)} />
+              <Input type="date" value={biltyDate} onChange={(e) => setBiltyDate(e.target.value)} disabled={isBilled} />
             </div>
             <div className="space-y-2">
               <Label>Vehicle</Label>
@@ -471,135 +596,169 @@ export default function CreateBilty() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
+              <Label>Driver Name</Label>
+              <Input value={driverName} onChange={(e) => setDriverName(e.target.value)} disabled={isBilled} />
+            </div>
+            <div className="space-y-2">
               <Label>Driver Mobile</Label>
-              <Input value={driverMobile} onChange={(e) => setDriverMobile(e.target.value)} placeholder="10-digit mobile" />
-            </div>
-            <div className="space-y-2">
-              <Label>Bill Number</Label>
-              <Input value={billNumber} onChange={(e) => setBillNumber(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Bill Date</Label>
-              <Input type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)} />
+              <Input value={driverMobile} onChange={(e) => setDriverMobile(e.target.value)} placeholder="10-digit mobile" disabled={isBilled} />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label>E-way Bill Number</Label>
-              <Input value={ewayBillNumber} onChange={(e) => setEwayBillNumber(e.target.value)} />
-            </div>
-          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bills / E-way (Multiple) */}
+      <Card>
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Bill & E-way Details</CardTitle>
+          <Button variant="outline" size="sm" onClick={addBill} disabled={isBilled}>
+            <Plus className="h-4 w-4 mr-1" /> Add Bill
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Bill Number</TableHead>
+                <TableHead>Bill Date</TableHead>
+                <TableHead>E-way Bill Number</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {bills.map((bill) => (
+                <TableRow key={bill.id}>
+                  <TableCell>
+                    <Input value={bill.bill_number} onChange={(e) => updateBill(bill.id, "bill_number", e.target.value)} disabled={isBilled} />
+                  </TableCell>
+                  <TableCell>
+                    <Input type="date" value={bill.bill_date} onChange={(e) => updateBill(bill.id, "bill_date", e.target.value)} disabled={isBilled} />
+                  </TableCell>
+                  <TableCell>
+                    <Input value={bill.eway_bill_number} onChange={(e) => updateBill(bill.id, "eway_bill_number", e.target.value)} disabled={isBilled} />
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => removeBill(bill.id)} disabled={bills.length === 1 || isBilled}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
       {/* Party Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-base">Consignor (Sender)</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => openPartyDialog("consignor")} disabled={isBilled}>
+              <Plus className="h-4 w-4 mr-1" /> Add Party
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <Label>Select Party</Label>
-              <SelectWithAdd
-                value={consignorId}
-                onValueChange={handleConsignorSelect}
-                placeholder="Select or enter manually"
-                items={consignors.map((p) => ({ id: p.id, label: p.name }))}
-                tableName="parties"
-                addTitle="Consignor"
-                addFields={[
-                  { key: "name", label: "Party Name", required: true },
-                  { key: "phone", label: "Phone" },
-                  { key: "gstin", label: "GSTIN" },
-                  { key: "city", label: "City" },
-                ]}
-                queryKeys={["parties-active"]}
-                onAdded={(id) => {
-                  supabase.from("parties").update({ party_type: "consignor" }).eq("id", id).then(() => {
-                    queryClient.invalidateQueries({ queryKey: ["parties-active"] });
-                  });
-                  handleConsignorSelect(id);
-                }}
-              />
+              <Select value={consignorId} onValueChange={handleConsignorSelect} disabled={isBilled}>
+                <SelectTrigger><SelectValue placeholder="Select party" /></SelectTrigger>
+                <SelectContent>
+                  {consignors.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input value={consignorName} onChange={(e) => setConsignorName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Input value={consignorAddress} onChange={(e) => setConsignorAddress(e.target.value)} />
-            </div>
+            <div className="space-y-2"><Label>Name</Label><Input value={consignorName} onChange={(e) => setConsignorName(e.target.value)} disabled={isBilled} /></div>
+            <div className="space-y-2"><Label>Address</Label><Input value={consignorAddress} onChange={(e) => setConsignorAddress(e.target.value)} disabled={isBilled} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>GSTIN</Label>
-                <Input value={consignorGstin} onChange={(e) => setConsignorGstin(e.target.value.toUpperCase())} maxLength={15} />
-              </div>
-              <div className="space-y-2">
-                <Label>Ship From</Label>
-                <Input value={shipFrom} onChange={(e) => setShipFrom(e.target.value)} />
-              </div>
+              <div className="space-y-2"><Label>GSTIN</Label><Input value={consignorGstin} onChange={(e) => setConsignorGstin(e.target.value.toUpperCase())} maxLength={15} disabled={isBilled} /></div>
+              <div className="space-y-2"><Label>Ship From</Label><Input value={shipFrom} onChange={(e) => setShipFrom(e.target.value)} disabled={isBilled} /></div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <CardTitle className="text-base">Consignee (Receiver)</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => openPartyDialog("consignee")} disabled={isBilled}>
+              <Plus className="h-4 w-4 mr-1" /> Add Party
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
               <Label>Select Party</Label>
-              <SelectWithAdd
-                value={consigneeId}
-                onValueChange={handleConsigneeSelect}
-                placeholder="Select or enter manually"
-                items={consignees.map((p) => ({ id: p.id, label: p.name }))}
-                tableName="parties"
-                addTitle="Consignee"
-                addFields={[
-                  { key: "name", label: "Party Name", required: true },
-                  { key: "phone", label: "Phone" },
-                  { key: "gstin", label: "GSTIN" },
-                  { key: "city", label: "City" },
-                ]}
-                queryKeys={["parties-active"]}
-                onAdded={(id) => {
-                  supabase.from("parties").update({ party_type: "consignee" }).eq("id", id).then(() => {
-                    queryClient.invalidateQueries({ queryKey: ["parties-active"] });
-                  });
-                  handleConsigneeSelect(id);
-                }}
-              />
+              <Select value={consigneeId} onValueChange={handleConsigneeSelect} disabled={isBilled}>
+                <SelectTrigger><SelectValue placeholder="Select party" /></SelectTrigger>
+                <SelectContent>
+                  {consignees.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Name</Label>
-              <Input value={consigneeName} onChange={(e) => setConsigneeName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Address</Label>
-              <Input value={consigneeAddress} onChange={(e) => setConsigneeAddress(e.target.value)} />
-            </div>
+            <div className="space-y-2"><Label>Name</Label><Input value={consigneeName} onChange={(e) => setConsigneeName(e.target.value)} disabled={isBilled} /></div>
+            <div className="space-y-2"><Label>Address</Label><Input value={consigneeAddress} onChange={(e) => setConsigneeAddress(e.target.value)} disabled={isBilled} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>GSTIN</Label>
-                <Input value={consigneeGstin} onChange={(e) => setConsigneeGstin(e.target.value.toUpperCase())} maxLength={15} />
-              </div>
-              <div className="space-y-2">
-                <Label>Ship To</Label>
-                <Input value={shipTo} onChange={(e) => setShipTo(e.target.value)} />
-              </div>
+              <div className="space-y-2"><Label>GSTIN</Label><Input value={consigneeGstin} onChange={(e) => setConsigneeGstin(e.target.value.toUpperCase())} maxLength={15} disabled={isBilled} /></div>
+              <div className="space-y-2"><Label>Ship To</Label><Input value={shipTo} onChange={(e) => setShipTo(e.target.value)} disabled={isBilled} /></div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Full Party Add Dialog */}
+      <Dialog open={partyDialogOpen} onOpenChange={setPartyDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add {partyDialogType === "consignor" ? "Consignor" : "Consignee"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Name *</Label><Input value={partyForm.name} onChange={(e) => updatePartyField("name", e.target.value)} /></div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={partyForm.party_type} onValueChange={(v) => updatePartyField("party_type", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="consignor">Consignor</SelectItem>
+                    <SelectItem value="consignee">Consignee</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>GSTIN</Label><Input value={partyForm.gstin} onChange={(e) => updatePartyField("gstin", e.target.value.toUpperCase())} maxLength={15} /></div>
+              <div className="space-y-2"><Label>Contact Person</Label><Input value={partyForm.contact_person} onChange={(e) => updatePartyField("contact_person", e.target.value)} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Phone</Label><Input value={partyForm.phone} onChange={(e) => updatePartyField("phone", e.target.value)} /></div>
+              <div className="space-y-2"><Label>Email</Label><Input value={partyForm.email} onChange={(e) => updatePartyField("email", e.target.value)} /></div>
+            </div>
+            <div className="space-y-2"><Label>Address</Label><Input value={partyForm.address} onChange={(e) => updatePartyField("address", e.target.value)} /></div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2"><Label>City</Label><Input value={partyForm.city} onChange={(e) => updatePartyField("city", e.target.value)} /></div>
+              <div className="space-y-2"><Label>State</Label><Input value={partyForm.state} onChange={(e) => updatePartyField("state", e.target.value)} /></div>
+              <div className="space-y-2"><Label>Pincode</Label><Input value={partyForm.pincode} onChange={(e) => updatePartyField("pincode", e.target.value)} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Credit Limit (₹)</Label><Input type="number" value={partyForm.credit_limit || ""} onChange={(e) => updatePartyField("credit_limit", Number(e.target.value))} /></div>
+              <div className="space-y-2"><Label>Payment Terms (days)</Label><Input type="number" value={partyForm.payment_terms || ""} onChange={(e) => updatePartyField("payment_terms", Number(e.target.value))} /></div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={partyForm.is_active} onCheckedChange={(v) => updatePartyField("is_active", v)} />
+              <Label>Active</Label>
+            </div>
+            <Button className="w-full" onClick={() => savePartyMutation.mutate()} disabled={savePartyMutation.isPending}>
+              {savePartyMutation.isPending ? "Saving..." : "Add Party"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Goods Table */}
       <Card>
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base">Goods Details</CardTitle>
-          <Button variant="outline" size="sm" onClick={addItem}>
+          <Button variant="outline" size="sm" onClick={addItem} disabled={isBilled}>
             <Plus className="h-4 w-4 mr-1" /> Add Item
           </Button>
         </CardHeader>
@@ -618,21 +777,13 @@ export default function CreateBilty() {
             <TableBody>
               {items.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell>
-                    <Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Item description" />
-                  </TableCell>
-                  <TableCell>
-                    <Input type="number" value={item.quantity || ""} onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))} className="w-20" />
-                  </TableCell>
-                  <TableCell>
-                    <Input type="number" value={item.weight || ""} onChange={(e) => updateItem(item.id, "weight", Number(e.target.value))} className="w-24" />
-                  </TableCell>
-                  <TableCell>
-                    <Input type="number" value={item.rate || ""} onChange={(e) => updateItem(item.id, "rate", Number(e.target.value))} className="w-24" />
-                  </TableCell>
+                  <TableCell><Input value={item.description} onChange={(e) => updateItem(item.id, "description", e.target.value)} placeholder="Item description" disabled={isBilled} /></TableCell>
+                  <TableCell><Input type="number" value={item.quantity || ""} onChange={(e) => updateItem(item.id, "quantity", Number(e.target.value))} className="w-20" disabled={isBilled} /></TableCell>
+                  <TableCell><Input type="number" value={item.weight || ""} onChange={(e) => updateItem(item.id, "weight", Number(e.target.value))} className="w-24" disabled={isBilled} /></TableCell>
+                  <TableCell><Input type="number" value={item.rate || ""} onChange={(e) => updateItem(item.id, "rate", Number(e.target.value))} className="w-24" disabled={isBilled} /></TableCell>
                   <TableCell className="font-medium">{formatINR(item.amount)}</TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} disabled={items.length === 1}>
+                    <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} disabled={items.length === 1 || isBilled}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>
@@ -653,17 +804,15 @@ export default function CreateBilty() {
 
       {/* Financials */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Financial Details (₹)</CardTitle>
-        </CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Financial Details (₹)</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="space-y-2"><Label>Freight</Label><Input type="number" value={freightAmount || ""} onChange={(e) => setFreightAmount(Number(e.target.value))} /></div>
-            <div className="space-y-2"><Label>Loading</Label><Input type="number" value={loadingCharges || ""} onChange={(e) => setLoadingCharges(Number(e.target.value))} /></div>
-            <div className="space-y-2"><Label>Unloading</Label><Input type="number" value={unloadingCharges || ""} onChange={(e) => setUnloadingCharges(Number(e.target.value))} /></div>
-            <div className="space-y-2"><Label>Weight Charges</Label><Input type="number" value={weightCharges || ""} onChange={(e) => setWeightCharges(Number(e.target.value))} /></div>
-            <div className="space-y-2"><Label>Other</Label><Input type="number" value={otherCharges || ""} onChange={(e) => setOtherCharges(Number(e.target.value))} /></div>
-            <div className="space-y-2"><Label>Advance Paid</Label><Input type="number" value={advancePaid || ""} onChange={(e) => setAdvancePaid(Number(e.target.value))} /></div>
+            <div className="space-y-2"><Label>Freight</Label><Input type="number" value={freightAmount || ""} onChange={(e) => setFreightAmount(Number(e.target.value))} disabled={isBilled} /></div>
+            <div className="space-y-2"><Label>Loading</Label><Input type="number" value={loadingCharges || ""} onChange={(e) => setLoadingCharges(Number(e.target.value))} disabled={isBilled} /></div>
+            <div className="space-y-2"><Label>Unloading</Label><Input type="number" value={unloadingCharges || ""} onChange={(e) => setUnloadingCharges(Number(e.target.value))} disabled={isBilled} /></div>
+            <div className="space-y-2"><Label>Weight Charges</Label><Input type="number" value={weightCharges || ""} onChange={(e) => setWeightCharges(Number(e.target.value))} disabled={isBilled} /></div>
+            <div className="space-y-2"><Label>Other</Label><Input type="number" value={otherCharges || ""} onChange={(e) => setOtherCharges(Number(e.target.value))} disabled={isBilled} /></div>
+            <div className="space-y-2"><Label>Advance Paid</Label><Input type="number" value={advancePaid || ""} onChange={(e) => setAdvancePaid(Number(e.target.value))} disabled={isBilled} /></div>
           </div>
           <Separator className="my-4" />
           <div className="flex justify-end gap-8 text-sm">
@@ -678,7 +827,7 @@ export default function CreateBilty() {
         <CardContent className="pt-6">
           <div className="space-y-2">
             <Label>Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes..." rows={3} />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes..." rows={3} disabled={isBilled} />
           </div>
         </CardContent>
       </Card>

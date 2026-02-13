@@ -195,8 +195,8 @@ export default function Bilties() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" asChild>
+                        <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" asChild disabled={b.status === "billed"} title={b.status === "billed" ? "Cannot edit — invoiced" : "Edit"}>
                           <Link to={`/bilties/edit/${b.id}`}><Pencil className="h-4 w-4" /></Link>
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => handleDownloadPDF(b)}>
