@@ -1,0 +1,66 @@
+previews:
+  generation: automatic
+
+services:
+  # =========================
+  # Backend API Service
+  # =========================
+  - type: web
+    name: bilty-backend
+    runtime: node
+    plan: standard
+    region: frankfurt
+    branch: main
+    buildCommand: npm install
+    startCommand: npm run start
+    autoDeployTrigger: commit
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Supabase
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+      # JWT / App Secrets
+      - key: JWT_SECRET
+        generateValue: true
+
+      # App URL
+      - key: APP_URL
+        sync: false
+
+  # =========================
+  # Frontend (Static Build)
+  # =========================
+  - type: web
+    name: bilty-frontend
+    runtime: static
+    plan: standard
+    branch: main
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    previews:
+      generation: automatic
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_API_BASE_URL
+        sync: false
+
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: sameorigin
+
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
