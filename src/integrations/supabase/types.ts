@@ -1167,6 +1167,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          client_subscription_id: string | null
           created_at: string
           email: string | null
           full_name: string
@@ -1179,6 +1180,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          client_subscription_id?: string | null
           created_at?: string
           email?: string | null
           full_name: string
@@ -1191,6 +1193,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          client_subscription_id?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
@@ -1201,7 +1204,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_client_subscription_id_fkey"
+            columns: ["client_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "client_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       proposal_items: {
         Row: {
@@ -1353,6 +1364,71 @@ export type Database = {
             columns: ["party_id"]
             isOneToOne: false
             referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registration_requests: {
+        Row: {
+          auth_user_id: string | null
+          client_subscription_id: string | null
+          company_name: string | null
+          created_at: string
+          email: string
+          email_verified: boolean
+          email_verified_at: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          requested_role: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          client_subscription_id?: string | null
+          company_name?: string | null
+          created_at?: string
+          email: string
+          email_verified?: boolean
+          email_verified_at?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          requested_role?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          client_subscription_id?: string | null
+          company_name?: string | null
+          created_at?: string
+          email?: string
+          email_verified?: boolean
+          email_verified_at?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          requested_role?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registration_requests_client_subscription_id_fkey"
+            columns: ["client_subscription_id"]
+            isOneToOne: false
+            referencedRelation: "client_subscriptions"
             referencedColumns: ["id"]
           },
         ]
