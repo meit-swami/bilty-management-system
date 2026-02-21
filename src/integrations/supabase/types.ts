@@ -371,6 +371,110 @@ export type Database = {
         }
         Relationships: []
       }
+      client_payments: {
+        Row: {
+          amount: number
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          payment_date: string
+          payment_method: string | null
+          reference_number: string | null
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_date?: string
+          payment_method?: string | null
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_date?: string
+          payment_method?: string | null
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_subscriptions: {
+        Row: {
+          amc_cost: number
+          client_company: string | null
+          client_email: string | null
+          client_name: string
+          client_phone: string | null
+          created_at: string
+          domain_url: string | null
+          end_date: string | null
+          hosting_cost: number
+          id: string
+          notes: string | null
+          plan_type: string
+          setup_cost: number
+          start_date: string
+          status: string
+          subscription_price: number
+          total_monthly_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          amc_cost?: number
+          client_company?: string | null
+          client_email?: string | null
+          client_name: string
+          client_phone?: string | null
+          created_at?: string
+          domain_url?: string | null
+          end_date?: string | null
+          hosting_cost?: number
+          id?: string
+          notes?: string | null
+          plan_type?: string
+          setup_cost?: number
+          start_date?: string
+          status?: string
+          subscription_price?: number
+          total_monthly_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amc_cost?: number
+          client_company?: string | null
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string | null
+          created_at?: string
+          domain_url?: string | null
+          end_date?: string | null
+          hosting_cost?: number
+          id?: string
+          notes?: string | null
+          plan_type?: string
+          setup_cost?: number
+          start_date?: string
+          status?: string
+          subscription_price?: number
+          total_monthly_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_settings: {
         Row: {
           address: string | null

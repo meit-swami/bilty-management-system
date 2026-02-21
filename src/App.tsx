@@ -26,6 +26,7 @@ import MfaVerify from "./pages/MfaVerify";
 import PublicInvoice from "./pages/PublicInvoice";
 import EmailLogs from "./pages/EmailLogs";
 import AuditLog from "./pages/AuditLog";
+import ClientSubscriptions from "./pages/ClientSubscriptions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ function AppRoutes() {
         <Route path="/backup" element={<Backup />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/audit-log" element={<AuditLog />} />
+        <Route path="/clients" element={<ClientSubscriptions />} />
       </Route>
       <Route path="/invoice/public/:token" element={<PublicInvoice />} />
       <Route path="*" element={<NotFound />} />
