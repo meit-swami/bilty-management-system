@@ -21,6 +21,8 @@ import {
   Target,
   Mail,
   Crown,
+  UserCheck,
+  UsersRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -131,7 +133,11 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
             <SidebarGroupContent>
-              {renderNavItems([{ label: "Client Subscriptions", path: "/clients", icon: Crown }])}
+              {renderNavItems([
+                { label: "Client Subscriptions", path: "/clients", icon: Crown },
+                { label: "Registrations", path: "/registrations", icon: UserCheck },
+                { label: "All Users", path: "/all-users", icon: UsersRound },
+              ])}
             </SidebarGroupContent>
           </SidebarGroup>
         )}

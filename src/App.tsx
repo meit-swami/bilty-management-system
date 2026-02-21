@@ -22,11 +22,15 @@ import SettingsPage from "./pages/SettingsPage";
 import Backup from "./pages/Backup";
 import UsersPage from "./pages/UsersPage";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
 import MfaVerify from "./pages/MfaVerify";
 import PublicInvoice from "./pages/PublicInvoice";
 import EmailLogs from "./pages/EmailLogs";
 import AuditLog from "./pages/AuditLog";
 import ClientSubscriptions from "./pages/ClientSubscriptions";
+import RegistrationApprovals from "./pages/RegistrationApprovals";
+import AllUsersOverview from "./pages/AllUsersOverview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +50,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
+      <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/mfa-verify" element={<MfaVerify />} />
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/" element={<Index />} />
@@ -69,6 +75,8 @@ function AppRoutes() {
         <Route path="/users" element={<UsersPage />} />
         <Route path="/audit-log" element={<AuditLog />} />
         <Route path="/clients" element={<ClientSubscriptions />} />
+        <Route path="/registrations" element={<RegistrationApprovals />} />
+        <Route path="/all-users" element={<AllUsersOverview />} />
       </Route>
       <Route path="/invoice/public/:token" element={<PublicInvoice />} />
       <Route path="*" element={<NotFound />} />
