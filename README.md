@@ -10,6 +10,9 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 
 ### 🔐 Authentication & RBAC
 - Supabase Auth with email/password login
+- **Forgot Password Flow**: Email-based password reset with dedicated reset page
+- **User Registration & Approval**: Public signup form with role selection (Manager, Accountant, Viewer), email verification link, and Super Admin approval workflow
+- **Registration Approvals Dashboard**: Super Admin can review, edit details, assign client, and approve/reject registrations
 - **TOTP Two-Factor Authentication** (Microsoft Authenticator / Google Authenticator)
   - Users can enable/disable 2FA from their profile
   - Super Admins can manage 2FA settings in Users page
@@ -21,6 +24,7 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 - Each user gets their own login credentials
 - Edge function for admin user creation with role assignment
 - **User Profile Menu** with name display, session timer (hh:mm:ss), profile editing, and password change
+- **All Users Overview**: Super Admin view of all users grouped by client subscription
 
 ### 🚚 Bilty (Lorry Receipt) Management
 - Create & **edit** bilties with auto-generated serial numbers (configurable prefix)
@@ -166,6 +170,7 @@ A comprehensive Bilty (Lorry Receipt / GR) management system built for the India
 | `groups` | User groups |
 | `user_groups` | Group membership |
 | `module_permissions` | Per-role CRUD permissions |
+| `registration_requests` | User signup requests pending approval |
 
 ---
 
@@ -221,6 +226,10 @@ src/
 │   ├── Expenses.tsx
 │   ├── SettingsPage.tsx  # Settings with branding & permissions
 │   ├── UsersPage.tsx     # User management
+│   ├── Register.tsx      # Public registration form
+│   ├── RegistrationApprovals.tsx # Super Admin approval dashboard
+│   ├── AllUsersOverview.tsx # All users grouped by client
+│   ├── ResetPassword.tsx # Password reset page
 │   ├── Backup.tsx
 │   └── Login.tsx
 ├── main.tsx
