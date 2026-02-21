@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsSuperAdmin } from "@/hooks/use-rbac";
 import { useCompanyName } from "@/hooks/use-company-settings";
 import {
   LayoutDashboard,
@@ -19,6 +20,7 @@ import {
   FileSignature,
   Target,
   Mail,
+  Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +68,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const companyName = useCompanyName();
+  const isSuperAdmin = useIsSuperAdmin();
 
   const handleLogout = async () => {
     await logout();
@@ -123,6 +126,15 @@ export function AppSidebar() {
           <SidebarGroupLabel>System</SidebarGroupLabel>
           <SidebarGroupContent>{renderNavItems(otherNav)}</SidebarGroupContent>
         </SidebarGroup>
+
+        {isSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              {renderNavItems([{ label: "Client Subscriptions", path: "/clients", icon: Crown }])}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t p-3 space-y-2">

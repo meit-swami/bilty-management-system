@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsSuperAdmin } from "@/hooks/use-rbac";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,7 @@ import {
 import { formatINR, formatDate } from "@/lib/format";
 import {
   FileText, Truck, Users2, BarChart3, PlusCircle,
-  IndianRupee, ClipboardList, AlertCircle, Banknote, Sparkles,
+  IndianRupee, ClipboardList, AlertCircle, Banknote, Sparkles, Crown,
 } from "lucide-react";
 
 const quickActions = [
@@ -33,6 +34,7 @@ function FloatingOrbs() {
 }
 
 export default function Dashboard() {
+  const isSuperAdmin = useIsSuperAdmin();
   const [animationsOn, setAnimationsOn] = useState(() => {
     const stored = localStorage.getItem("dashboard_animations");
     return stored !== "off";
@@ -77,6 +79,19 @@ export default function Dashboard() {
       const { data } = await supabase.from("invoices").select("balance_due");
       return data || [];
     },
+  });
+
+  const { data: clientStats } = useQuery({
+    queryKey: ["client-stats-dashboard"],
+    queryFn: async () => {
+      const { data: clients } = await supabase.from("client_subscriptions").select("status, total_monthly_cost");
+      const { data: payments } = await supabase.from("client_payments").select("amount");
+      const active = (clients || []).filter((c: any) => c.status === "active").length;
+      const monthlyRev = (clients || []).filter((c: any) => c.status === "active").reduce((s: number, c: any) => s + Number(c.total_monthly_cost || 0), 0);
+      const totalCollected = (payments || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+      return { active, monthlyRev, totalCollected, total: (clients || []).length };
+    },
+    enabled: isSuperAdmin,
   });
 
   const totalBilties = allBilties.length;
@@ -209,6 +224,35 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Super Admin - Client Stats */}
+      {isSuperAdmin && clientStats && (
+        <Card className={animationsOn ? "animate-fade-in" : ""} style={animationsOn ? { animationDelay: "400ms", animationFillMode: "both" } : undefined}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2"><Crown className="h-4 w-4 text-amber-500" />Client Subscriptions Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Total Clients", value: String(clientStats.total) },
+                { label: "Active Clients", value: String(clientStats.active) },
+                { label: "Monthly Revenue", value: formatINR(clientStats.monthlyRev) },
+                { label: "Total Collected", value: formatINR(clientStats.totalCollected) },
+              ].map(s => (
+                <div key={s.label} className="text-center p-3 rounded-lg bg-muted/50">
+                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                  <p className="text-lg font-bold mt-1">{s.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 text-right">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/clients" className="gap-1.5"><Crown className="h-3.5 w-3.5" />Manage Clients</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
