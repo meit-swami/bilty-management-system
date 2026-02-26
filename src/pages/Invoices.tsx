@@ -17,7 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { formatINR, formatDate } from "@/lib/format";
-import { PlusCircle, X, FileDown, Link2, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, X, FileDown, Link2, Pencil, Trash2, FileText, IndianRupee, CircleCheck, CircleAlert } from "lucide-react";
 import { useRealtimeTable } from "@/hooks/use-realtime-query";
 import { generateInvoicePDF } from "@/lib/pdf";
 import { toast } from "@/hooks/use-toast";
@@ -54,17 +54,11 @@ export default function Invoices() {
 
   const deleteMutation = useMutation({
     mutationFn: async (inv: any) => {
-      // Get associated bilty IDs to un-bill them
       const { data: invItems } = await supabase.from("invoice_items").select("bilty_id").eq("invoice_id", inv.id);
       const biltyIds = (invItems || []).map((i) => i.bilty_id);
-
-      // Delete invoice items first
       await supabase.from("invoice_items").delete().eq("invoice_id", inv.id);
-      // Delete the invoice
       const { error } = await supabase.from("invoices").delete().eq("id", inv.id);
       if (error) throw error;
-
-      // Mark bilties back as unbilled
       if (biltyIds.length > 0) {
         await supabase.from("bilties").update({ status: "unbilled" }).in("id", biltyIds);
       }
@@ -90,12 +84,6 @@ export default function Invoices() {
 
   const clearFilters = () => { setStatusFilter("all"); setSearch(""); setDateFrom(""); setDateTo(""); };
 
-  const statusCards = [
-    { label: "Unpaid", value: "unpaid", count: unpaidCount, pct: total ? ((unpaidCount/total)*100).toFixed(1) : "0", color: "text-destructive border-destructive/30" },
-    { label: "Paid", value: "paid", count: paidCount, pct: total ? ((paidCount/total)*100).toFixed(1) : "0", color: "text-emerald-600 border-emerald-200" },
-    { label: "Partially Paid", value: "partial", count: partialCount, pct: total ? ((partialCount/total)*100).toFixed(1) : "0", color: "text-amber-600 border-amber-200" },
-  ];
-
   const handleDownloadPDF = async (inv: any) => {
     const { data: invItems } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
     const biltyIds = (invItems || []).map((i) => i.bilty_id);
@@ -118,37 +106,48 @@ export default function Invoices() {
     toast({ title: "Link copied to clipboard" });
   };
 
+  const summaryCards = [
+    { label: "Total Invoices", value: total, sub: formatINR(totalAmount), icon: FileText, color: "text-primary" },
+    { label: "Paid", value: paidCount, sub: formatINR(totalPaid), icon: CircleCheck, color: "text-emerald-600" },
+    { label: "Unpaid", value: unpaidCount, sub: formatINR(totalBalance), icon: CircleAlert, color: "text-destructive" },
+    { label: "Partially Paid", value: partialCount, sub: null, icon: IndianRupee, color: "text-amber-600" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Invoices</h1>
-        <div className="flex gap-2 items-center text-xs">
-          <Badge variant="outline" className="text-emerald-600">Paid {formatINR(totalPaid)}</Badge>
-          <Badge variant="outline" className="text-destructive">Outstanding {formatINR(totalBalance)}</Badge>
-        </div>
+        <Button asChild>
+          <Link to="/invoices/create"><PlusCircle className="h-4 w-4 mr-1" /> Create Invoice</Link>
+        </Button>
       </div>
 
-      {/* Status filter cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {statusCards.map((s) => (
-          <button
-            key={s.value}
-            onClick={() => setStatusFilter(statusFilter === s.value ? "all" : s.value)}
-            className={`border rounded-lg p-3 text-left transition-colors hover:bg-muted/50 ${statusFilter === s.value ? "ring-2 ring-primary" : ""} ${s.color}`}
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {summaryCards.map((c) => (
+          <Card key={c.label} className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => {
+              if (c.label === "Total Invoices") setStatusFilter("all");
+              else if (c.label === "Paid") setStatusFilter(statusFilter === "paid" ? "all" : "paid");
+              else if (c.label === "Unpaid") setStatusFilter(statusFilter === "unpaid" ? "all" : "unpaid");
+              else if (c.label === "Partially Paid") setStatusFilter(statusFilter === "partial" ? "all" : "partial");
+            }}
           >
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">{s.label}</span>
-              <span className="text-xs text-muted-foreground">({s.pct}%)</span>
-            </div>
-            <p className="text-lg font-bold">{s.count} / {total}</p>
-          </button>
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className={`p-2 rounded-lg bg-muted ${c.color}`}>
+                <c.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">{c.label}</p>
+                <p className="text-xl font-bold">{c.value}</p>
+                {c.sub && <p className={`text-xs font-medium ${c.color}`}>{c.sub}</p>}
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button asChild><Link to="/invoices/create"><PlusCircle className="h-4 w-4 mr-1" /> Create Invoice</Link></Button>
-      </div>
-
+      {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3 items-end">
@@ -181,6 +180,7 @@ export default function Invoices() {
         </CardContent>
       </Card>
 
+      {/* Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -189,8 +189,8 @@ export default function Invoices() {
                 <TableHead>Invoice No</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Party</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Total Tax</TableHead>
+                <TableHead className="text-right">Subtotal</TableHead>
+                <TableHead className="text-right">Tax</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Balance</TableHead>
                 <TableHead>Status</TableHead>
@@ -211,16 +211,16 @@ export default function Invoices() {
                       <TableCell>{formatDate(inv.invoice_date)}</TableCell>
                       <TableCell>{inv.party_name || "—"}</TableCell>
                       <TableCell className="text-right">{formatINR(Number(inv.subtotal || 0))}</TableCell>
-                      <TableCell className="text-right">{formatINR(gst)}</TableCell>
+                      <TableCell className="text-right">{gst > 0 ? formatINR(gst) : "—"}</TableCell>
                       <TableCell className="text-right font-medium">{formatINR(Number(inv.total_amount || 0))}</TableCell>
                       <TableCell className="text-right">{formatINR(Number(inv.balance_due || 0))}</TableCell>
                       <TableCell>
                         <Badge variant={
-                          inv.payment_status === "paid" ? "default" 
-                          : inv.payment_status === "partial" ? "secondary" 
+                          inv.payment_status === "paid" ? "default"
+                          : inv.payment_status === "partial" ? "secondary"
                           : "destructive"
                         }>
-                          {inv.payment_status === "partial" ? "Partially Paid" : inv.payment_status}
+                          {inv.payment_status === "partial" ? "Partial" : inv.payment_status}
                         </Badge>
                       </TableCell>
                       <TableCell>
