@@ -1,6 +1,11 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { formatINR, formatDate } from "@/lib/format";
+import { formatINR as _formatINR, formatDate } from "@/lib/format";
+
+/** PDF-safe currency format (₹ not supported in default jsPDF fonts) */
+function formatINR(amount: number): string {
+  return _formatINR(amount).replace("₹", "Rs.");
+}
 
 interface CompanySettings {
   company_name?: string | null;
