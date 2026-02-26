@@ -67,9 +67,9 @@ export default function PublicInvoice() {
     }
   };
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!invoice) return;
-    const doc = generateInvoicePDF(invoice, invoiceItems, bilties, settings || {});
+    const doc = await generateInvoicePDF(invoice, invoiceItems, bilties, settings || {});
     doc.save(`${invoice.invoice_number}.pdf`);
   };
 
