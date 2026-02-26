@@ -88,7 +88,7 @@ export default function Invoices() {
     const { data: invItems } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
     const biltyIds = (invItems || []).map((i) => i.bilty_id);
     const { data: bilties } = await supabase.from("bilties").select("*").in("id", biltyIds.length ? biltyIds : ["none"]);
-    const doc = generateInvoicePDF(inv, invItems || [], bilties || [], settings || {});
+    const doc = await generateInvoicePDF(inv, invItems || [], bilties || [], settings || {});
     doc.save(`${inv.invoice_number}.pdf`);
   };
 

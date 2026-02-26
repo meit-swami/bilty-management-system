@@ -9,67 +9,87 @@ interface CompanySettings {
   email?: string | null;
   gstin?: string | null;
   state_code?: string | null;
+  logo_light_url?: string | null;
+  logo_dark_url?: string | null;
 }
 
-/* ─── SHARED ─── */
+/* ─── Logo helper ─── */
+async function loadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
-function addInvoiceHeader(doc: jsPDF, settings: CompanySettings) {
+/* ─── Dark header (shared for both Invoice & Bilty) ─── */
+async function addDarkHeader(
+  doc: jsPDF,
+  settings: CompanySettings,
+  title: string
+) {
   const pageWidth = doc.internal.pageSize.getWidth();
 
   // Dark navy banner
-  doc.setFillColor(15, 23, 42); // slate-900
-  doc.rect(0, 0, pageWidth, 58, "F");
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageWidth, 60, "F");
 
-  // "Invoice" title – large white
+  // Title – large white, left
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(32);
+  doc.setFontSize(30);
   doc.setFont("helvetica", "bold");
-  doc.text("Invoice", 16, 28);
+  doc.text(title, 16, 28);
 
-  // Company name – right aligned, white
+  // Logo – below title in banner
+  const logoUrl = settings.logo_light_url || settings.logo_dark_url;
+  if (logoUrl) {
+    const base64 = await loadImageAsBase64(logoUrl);
+    if (base64) {
+      try {
+        doc.addImage(base64, "PNG", 16, 34, 30, 18);
+      } catch {
+        // skip if image fails
+      }
+    }
+  }
+
+  // Company details – right aligned, white
   const name = settings.company_name || "Simple Capital Solutions";
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   doc.text(name, pageWidth - 16, 18, { align: "right" });
 
-  // Company details – right aligned
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setFont("helvetica", "normal");
   let ry = 26;
-  if (settings.address) { doc.text(settings.address, pageWidth - 16, ry, { align: "right" }); ry += 5; }
-  if (settings.phone) { doc.text(settings.phone, pageWidth - 16, ry, { align: "right" }); ry += 5; }
-  if (settings.email) { doc.text(settings.email, pageWidth - 16, ry, { align: "right" }); ry += 5; }
-  if (settings.gstin) { doc.text(`GSTIN: ${settings.gstin}`, pageWidth - 16, ry, { align: "right" }); }
+  if (settings.address) {
+    doc.text(settings.address, pageWidth - 16, ry, { align: "right" });
+    ry += 4.5;
+  }
+  if (settings.phone) {
+    doc.text(settings.phone, pageWidth - 16, ry, { align: "right" });
+    ry += 4.5;
+  }
+  if (settings.email) {
+    doc.text(settings.email, pageWidth - 16, ry, { align: "right" });
+    ry += 4.5;
+  }
+  if (settings.gstin) {
+    doc.text(`GSTIN: ${settings.gstin}`, pageWidth - 16, ry, { align: "right" });
+  }
 
   doc.setTextColor(0, 0, 0);
-  return 68; // y position after header
+  return 70;
 }
 
-function addBiltyHeader(doc: jsPDF, settings: CompanySettings) {
-  const name = settings.company_name || "Simple Capital Solutions";
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text(name, 14, 22);
-
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(80);
-  let y = 30;
-  if (settings.address) { doc.text(settings.address, 14, y); y += 5; }
-  const parts: string[] = [];
-  if (settings.phone) parts.push(`Phone: ${settings.phone}`);
-  if (settings.email) parts.push(`Email: ${settings.email}`);
-  if (parts.length) { doc.text(parts.join("  |  "), 14, y); y += 5; }
-  if (settings.gstin) { doc.text(`GSTIN: ${settings.gstin}`, 14, y); y += 5; }
-
-  doc.setDrawColor(41, 128, 185);
-  doc.setLineWidth(0.8);
-  doc.line(14, y, 196, y);
-  doc.setTextColor(0);
-  doc.setLineWidth(0.2);
-  return y + 6;
-}
-
+/* ─── Footer ─── */
 function addFooter(doc: jsPDF, settings: CompanySettings) {
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
@@ -85,35 +105,90 @@ function addFooter(doc: jsPDF, settings: CompanySettings) {
   }
 }
 
-/* ─── BILTY PDF ─── */
-export function generateBiltyPDF(
+/* ═══════════════════════════════════════════
+   BILTY PDF
+   ═══════════════════════════════════════════ */
+export async function generateBiltyPDF(
   bilty: any,
   items: any[],
   settings: CompanySettings
 ) {
   const doc = new jsPDF();
-  let y = addBiltyHeader(doc, settings);
+  let y = await addDarkHeader(doc, settings, "Bilty");
 
-  doc.setFontSize(15);
+  // Two-column meta: Bilty Details (left) | Transport Details (right)
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("BILTY / LORRY RECEIPT", 105, y, { align: "center" });
-  y += 10;
+  doc.setTextColor(80);
+  doc.text("BILTY DETAILS:", 16, y);
+  doc.setTextColor(0);
+  y += 7;
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("Bilty No", 16, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(bilty.bilty_number, 50, y);
+  y += 5;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Date", 16, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(formatDate(bilty.bilty_date), 50, y);
+  y += 5;
+
+  if (bilty.eway_bill_number) {
+    doc.setFont("helvetica", "bold");
+    doc.text("E-way Bill", 16, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(bilty.eway_bill_number, 50, y);
+    y += 5;
+  }
+
+  // Right column – Transport Details
+  const rightStartY = y - (bilty.eway_bill_number ? 17 : 12);
+  const rx = 130;
 
   doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Bilty No: ${bilty.bilty_number}`, 14, y);
-  doc.text(`Date: ${formatDate(bilty.bilty_date)}`, 140, y);
-  y += 6;
-  if (bilty.vehicle_number) doc.text(`Vehicle: ${bilty.vehicle_number}`, 14, y);
-  if (bilty.driver_name) doc.text(`Driver: ${bilty.driver_name}`, 140, y);
-  y += 6;
-  if (bilty.eway_bill_number) { doc.text(`E-way Bill: ${bilty.eway_bill_number}`, 14, y); y += 6; }
-
-  y += 2;
   doc.setFont("helvetica", "bold");
-  doc.text("Consignor (From):", 14, y);
-  doc.text("Consignee (To):", 110, y);
+  doc.setTextColor(80);
+  doc.text("TRANSPORT:", rx, rightStartY);
+  doc.setTextColor(0);
+
+  let rty = rightStartY + 7;
+  doc.setFontSize(9);
+  if (bilty.vehicle_number) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Vehicle", rx, rty);
+    doc.setFont("helvetica", "normal");
+    doc.text(bilty.vehicle_number, rx + 28, rty);
+    rty += 5;
+  }
+  if (bilty.driver_name) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Driver", rx, rty);
+    doc.setFont("helvetica", "normal");
+    doc.text(bilty.driver_name, rx + 28, rty);
+    rty += 5;
+  }
+
+  y = Math.max(y, rty) + 4;
+
+  // Separator
+  doc.setDrawColor(220);
+  doc.setLineWidth(0.3);
+  doc.line(16, y, 194, y);
   y += 6;
+
+  // Consignor / Consignee two-column
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(80);
+  doc.text("CONSIGNOR (FROM):", 16, y);
+  doc.text("CONSIGNEE (TO):", 110, y);
+  doc.setTextColor(0);
+  y += 6;
+
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
 
@@ -122,6 +197,7 @@ export function generateBiltyPDF(
     bilty.consignor_gstin ? `GSTIN: ${bilty.consignor_gstin}` : null,
     bilty.ship_from ? `Ship From: ${bilty.ship_from}` : null,
   ].filter(Boolean);
+
   const consigneeLines = [
     bilty.consignee_name, bilty.consignee_address,
     bilty.consignee_gstin ? `GSTIN: ${bilty.consignee_gstin}` : null,
@@ -130,12 +206,13 @@ export function generateBiltyPDF(
 
   const maxLines = Math.max(consignorLines.length, consigneeLines.length);
   for (let i = 0; i < maxLines; i++) {
-    if (consignorLines[i]) doc.text(consignorLines[i]!, 14, y);
+    if (consignorLines[i]) doc.text(consignorLines[i]!, 16, y);
     if (consigneeLines[i]) doc.text(consigneeLines[i]!, 110, y);
     y += 5;
   }
-  y += 4;
+  y += 6;
 
+  // Goods table
   if (items.length > 0) {
     autoTable(doc, {
       startY: y,
@@ -144,59 +221,84 @@ export function generateBiltyPDF(
         idx + 1, item.description, item.quantity || 0, item.weight || 0,
         formatINR(item.rate || 0), formatINR(item.amount || 0),
       ]),
-      theme: "grid",
-      headStyles: { fillColor: [41, 128, 185], fontSize: 9, fontStyle: "bold" },
-      styles: { fontSize: 9, cellPadding: 3 },
+      theme: "striped",
+      headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 9, lineWidth: 0 },
+      styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
       columnStyles: { 0: { halign: "center", cellWidth: 12 }, 4: { halign: "right" }, 5: { halign: "right" } },
-      margin: { left: 14, right: 14 },
+      margin: { left: 16, right: 16 },
+      didDrawPage() {
+        doc.setDrawColor(30);
+        doc.setLineWidth(0.5);
+        doc.line(16, y + 10, 194, y + 10);
+      },
     });
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc as any).lastAutoTable.finalY + 12;
   }
 
-  const financials: string[][] = [];
-  const addRow = (label: string, val: number) => { if (val) financials.push([label, formatINR(val)]); };
-  addRow("Freight", bilty.freight_amount);
-  addRow("Loading Charges", bilty.loading_charges);
-  addRow("Unloading Charges", bilty.unloading_charges);
-  addRow("Weight Charges", bilty.weight_charges);
-  addRow("Other Charges", bilty.other_charges);
-  financials.push(["Total Amount", formatINR(bilty.total_amount || 0)]);
-  addRow("Advance Paid", bilty.advance_paid);
-  financials.push(["Balance Due", formatINR(bilty.balance_due || 0)]);
+  // Financial summary
+  const sumX = 120;
+  const valX = 190;
+  doc.setFontSize(10);
 
-  autoTable(doc, {
-    startY: y,
-    body: financials,
-    theme: "plain",
-    styles: { fontSize: 10, cellPadding: 2 },
-    columnStyles: { 0: { fontStyle: "normal", cellWidth: 50 }, 1: { halign: "right", fontStyle: "bold", cellWidth: 40 } },
-    margin: { left: 110, right: 14 },
-    didParseCell(data) {
-      const label = data.row.raw?.[0] as string | undefined;
-      if (label === "Total Amount" || label === "Balance Due") {
-        data.cell.styles.fontStyle = "bold";
-      }
-    },
-  });
+  const addLine = (label: string, val: number, bold = false) => {
+    if (!val && !bold) return;
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.text(label, sumX, y);
+    doc.text(formatINR(val || 0), valX, y, { align: "right" });
+    y += 6;
+  };
+
+  addLine("Freight", bilty.freight_amount);
+  addLine("Loading Charges", bilty.loading_charges);
+  addLine("Unloading Charges", bilty.unloading_charges);
+  addLine("Weight Charges", bilty.weight_charges);
+  addLine("Other Charges", bilty.other_charges);
+
+  // Separator before total
+  doc.setDrawColor(200);
+  doc.line(sumX, y - 2, valX, y - 2);
+  y += 3;
+
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text("TOTAL", sumX, y);
+  doc.text(formatINR(bilty.total_amount || 0), valX, y, { align: "right" });
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text("Advance Paid", sumX, y);
+  doc.setTextColor(34, 139, 34);
+  doc.text(formatINR(bilty.advance_paid || 0), valX, y, { align: "right" });
+  doc.setTextColor(0);
+  y += 6;
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Balance Due", sumX, y);
+  const bal = Number(bilty.balance_due || 0);
+  if (bal > 0) doc.setTextColor(200, 0, 0);
+  doc.text(formatINR(bal), valX, y, { align: "right" });
+  doc.setTextColor(0);
 
   addFooter(doc, settings);
   return doc;
 }
 
-/* ─── INVOICE PDF ─── */
-export function generateInvoicePDF(
+/* ═══════════════════════════════════════════
+   INVOICE PDF
+   ═══════════════════════════════════════════ */
+export async function generateInvoicePDF(
   invoice: any,
   invoiceItems: any[],
   bilties: any[],
   settings: CompanySettings
 ) {
   const doc = new jsPDF();
-  let y = addInvoiceHeader(doc, settings);
+  let y = await addDarkHeader(doc, settings, "Invoice");
 
-  // Two-column section: Invoice Details (left) | Bill To (right)
+  // Two-column: Invoice Details (left) | Bill To (right)
   doc.setFontSize(10);
-
-  // Left column – Invoice Details
   doc.setFont("helvetica", "bold");
   doc.setTextColor(80);
   doc.text("INVOICE DETAILS:", 16, y);
@@ -224,10 +326,9 @@ export function generateInvoicePDF(
     y += 5;
   }
 
-  // Right column – Bill To (drawn at same vertical position)
+  // Right column – Bill To
   const billToY = y - (invoice.due_date ? 17 : 12);
   const rightX = 140;
-
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(80);
@@ -250,7 +351,7 @@ export function generateInvoicePDF(
 
   y = Math.max(y, bty) + 6;
 
-  // Separator line
+  // Separator
   doc.setDrawColor(220);
   doc.setLineWidth(0.3);
   doc.line(16, y, 194, y);
@@ -274,50 +375,44 @@ export function generateInvoicePDF(
     head: [["#", "Bilty No", "Date", "Consignor", "Consignee", "Amount"]],
     body: tableBody,
     theme: "striped",
-    headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 9, lineWidth: 0, lineColor: [220, 220, 220] },
+    headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 9, lineWidth: 0 },
     styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0 },
     alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: {
-      0: { halign: "center", cellWidth: 12 },
-      5: { halign: "right", fontStyle: "bold" },
-    },
+    columnStyles: { 0: { halign: "center", cellWidth: 12 }, 5: { halign: "right", fontStyle: "bold" } },
     margin: { left: 16, right: 16 },
     didDrawPage() {
-      // Draw header bottom border
-      const tableStartY = y;
       doc.setDrawColor(30);
       doc.setLineWidth(0.5);
-      doc.line(16, tableStartY + 10, 194, tableStartY + 10);
+      doc.line(16, y + 10, 194, y + 10);
     },
   });
   y = (doc as any).lastAutoTable.finalY + 12;
 
-  // Financial summary – right aligned, two columns
+  // Financial summary
   const cgst = Number(invoice.cgst_amount || 0);
   const sgst = Number(invoice.sgst_amount || 0);
   const igst = Number(invoice.igst_amount || 0);
 
-  const summaryData: [string, string, boolean][] = [
-    ["Subtotal", formatINR(invoice.subtotal || 0), false],
-  ];
-
-  if (cgst > 0) {
-    summaryData.push([`CGST (${invoice.cgst_rate || 0}%)`, formatINR(cgst), false]);
-    summaryData.push([`SGST (${invoice.sgst_rate || 0}%)`, formatINR(sgst), false]);
-  }
-  if (igst > 0) {
-    summaryData.push([`IGST (${invoice.igst_rate || 0}%)`, formatINR(igst), false]);
-  }
-
-  // Draw summary manually for precise control
   const sumX = 120;
   const valX = 190;
   doc.setFontSize(10);
 
-  for (const [label, value, _bold] of summaryData) {
-    doc.setFont("helvetica", "normal");
-    doc.text(label, sumX, y);
-    doc.text(value, valX, y, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.text("Subtotal", sumX, y);
+  doc.text(formatINR(invoice.subtotal || 0), valX, y, { align: "right" });
+  y += 6;
+
+  if (cgst > 0) {
+    doc.text(`CGST (${invoice.cgst_rate || 0}%)`, sumX, y);
+    doc.text(formatINR(cgst), valX, y, { align: "right" });
+    y += 6;
+    doc.text(`SGST (${invoice.sgst_rate || 0}%)`, sumX, y);
+    doc.text(formatINR(sgst), valX, y, { align: "right" });
+    y += 6;
+  }
+  if (igst > 0) {
+    doc.text(`IGST (${invoice.igst_rate || 0}%)`, sumX, y);
+    doc.text(formatINR(igst), valX, y, { align: "right" });
     y += 6;
   }
 
@@ -326,14 +421,12 @@ export function generateInvoicePDF(
   doc.line(sumX, y - 2, valX, y - 2);
   y += 3;
 
-  // TOTAL – bold and larger
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.text("TOTAL", sumX, y);
   doc.text(formatINR(invoice.total_amount || 0), valX, y, { align: "right" });
   y += 8;
 
-  // Amount Paid & Balance
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text("Amount Paid", sumX, y);
@@ -349,7 +442,7 @@ export function generateInvoicePDF(
   doc.text(formatINR(balanceDue), valX, y, { align: "right" });
   doc.setTextColor(0);
 
-  // Notes / Terms section (left side)
+  // Notes
   if (invoice.notes) {
     const notesY = (doc as any).lastAutoTable.finalY + 12;
     doc.setFontSize(9);
