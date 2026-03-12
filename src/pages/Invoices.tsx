@@ -87,8 +87,16 @@ export default function Invoices() {
   const handleDownloadPDF = async (inv: any) => {
     const { data: invItems } = await supabase.from("invoice_items").select("*").eq("invoice_id", inv.id);
     const biltyIds = (invItems || []).map((i) => i.bilty_id);
-    const { data: bilties } = await supabase.from("bilties").select("*").in("id", biltyIds.length ? biltyIds : ["none"]);
-    const doc = await generateInvoicePDF(inv, invItems || [], bilties || [], settings || {});
+    const [{ data: bilties }, { data: biltyItems }] = await Promise.all([
+      supabase.from("bilties").select("*").in("id", biltyIds.length ? biltyIds : ["none"]),
+      supabase.from("bilty_items").select("*").in("bilty_id", biltyIds.length ? biltyIds : ["none"]),
+    ]);
+    // Attach goods text to each bilty
+    const biltiesWithGoods = (bilties || []).map(b => ({
+      ...b,
+      items_text: (biltyItems || []).filter(i => i.bilty_id === b.id).map(i => i.description).join(", ") || "—",
+    }));
+    const doc = await generateInvoicePDF(inv, invItems || [], biltiesWithGoods, settings || {});
     doc.save(`${inv.invoice_number}.pdf`);
   };
 

@@ -225,6 +225,10 @@ export async function generateBiltyPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
 
+  const leftColWidth = 85;
+  const rightColWidth = 80;
+  const rightColX = 110;
+
   const consignorLines = [
     bilty.consignor_name, bilty.consignor_address,
     bilty.consignor_gstin ? `GSTIN: ${bilty.consignor_gstin}` : null,
@@ -237,10 +241,23 @@ export async function generateBiltyPDF(
     bilty.ship_to ? `Ship To: ${bilty.ship_to}` : null,
   ].filter(Boolean);
 
-  const maxLines = Math.max(consignorLines.length, consigneeLines.length);
+  // Wrap each line to fit column width
+  const wrappedLeft: string[] = [];
+  consignorLines.forEach(line => {
+    const split = doc.splitTextToSize(line!, leftColWidth);
+    wrappedLeft.push(...split);
+  });
+
+  const wrappedRight: string[] = [];
+  consigneeLines.forEach(line => {
+    const split = doc.splitTextToSize(line!, rightColWidth);
+    wrappedRight.push(...split);
+  });
+
+  const maxLines = Math.max(wrappedLeft.length, wrappedRight.length);
   for (let i = 0; i < maxLines; i++) {
-    if (consignorLines[i]) doc.text(consignorLines[i]!, 16, y);
-    if (consigneeLines[i]) doc.text(consigneeLines[i]!, 110, y);
+    if (wrappedLeft[i]) doc.text(wrappedLeft[i], 16, y);
+    if (wrappedRight[i]) doc.text(wrappedRight[i], rightColX, y);
     y += 5;
   }
   y += 6;
@@ -402,102 +419,155 @@ export async function generateInvoicePDF(
   doc.line(16, y, 194, y);
   y += 8;
 
-  // Items table
+  // Items table with transporter details
   const tableBody = invoiceItems.map((item, idx) => {
     const bilty = bilties.find((b) => b.id === item.bilty_id);
+    // Collect goods descriptions from bilty items if available
+    const goodsDesc = bilty?.items_text || "—";
     return [
       idx + 1,
       bilty?.bilty_number || "—",
       bilty ? formatDate(bilty.bilty_date) : "—",
+      goodsDesc,
       bilty?.consignor_name || "—",
-      bilty?.consignee_name || "—",
+      bilty?.vehicle_number || "—",
+      formatINR(bilty?.freight_amount || 0),
+      formatINR(bilty?.loading_charges || 0),
+      formatINR(bilty?.unloading_charges || 0),
+      formatINR(bilty?.weight_charges || 0),
       formatINR(item.amount || 0),
     ];
   });
 
   autoTable(doc, {
     startY: y,
-    head: [["#", "Bilty No", "Date", "Consignor", "Consignee", "Amount"]],
+    head: [["S.No", "Bilty No", "Date", "Goods", "From", "Vehicle", "Freight", "Loading", "Unloading", "Weight\nChg", "Total"]],
     body: tableBody,
     theme: "striped",
-    headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 9, lineWidth: 0 },
-    styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0 },
+    headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 7, lineWidth: 0.2, lineColor: [180, 180, 180] },
+    styles: { fontSize: 7, cellPadding: 3, lineColor: [200, 200, 200], lineWidth: 0.2 },
     alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: { 0: { halign: "center", cellWidth: 12 }, 5: { halign: "right", fontStyle: "bold" } },
-    margin: { left: 16, right: 16 },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 12 },
+      1: { cellWidth: 18 },
+      2: { cellWidth: 18 },
+      3: { cellWidth: 28 },
+      4: { cellWidth: 22 },
+      5: { cellWidth: 18 },
+      6: { halign: "right", cellWidth: 16 },
+      7: { halign: "right", cellWidth: 16 },
+      8: { halign: "right", cellWidth: 18 },
+      9: { halign: "right", cellWidth: 14 },
+      10: { halign: "right", fontStyle: "bold", cellWidth: 16 },
+    },
+    margin: { left: 10, right: 10 },
     didDrawPage() {
       doc.setDrawColor(30);
       doc.setLineWidth(0.5);
-      doc.line(16, y + 10, 194, y + 10);
+      doc.line(10, y + 10, 200, y + 10);
     },
   });
-  y = (doc as any).lastAutoTable.finalY + 12;
+  y = (doc as any).lastAutoTable.finalY + 8;
 
-  // Financial summary
+  // Grand Total row
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Grand Total:", 145, y);
+  doc.text(formatINR(invoice.subtotal || 0), 196, y, { align: "right" });
+  y += 10;
+
+  // Payment Summary box (right-aligned like reference)
   const cgst = Number(invoice.cgst_amount || 0);
   const sgst = Number(invoice.sgst_amount || 0);
   const igst = Number(invoice.igst_amount || 0);
 
-  const sumX = 120;
-  const valX = 190;
-  doc.setFontSize(10);
+  const boxX = 120;
+  const boxW = 76;
+  const labelX = boxX + 4;
+  const valX = boxX + boxW - 4;
 
+  // Calculate box height
+  let lineCount = 3; // Total, Advance, Balance
+  if (cgst > 0) lineCount += 2;
+  if (igst > 0) lineCount += 1;
+  const boxH = 10 + lineCount * 7;
+
+  // Draw box border
+  doc.setDrawColor(200, 150, 50);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(boxX, y - 2, boxW, boxH, 1, 1, "S");
+
+  // Header
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Payment Summary", boxX + boxW / 2, y + 5, { align: "center" });
+  y += 12;
+
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("Subtotal", sumX, y);
-  doc.text(formatINR(invoice.subtotal || 0), valX, y, { align: "right" });
-  y += 6;
 
   if (cgst > 0) {
-    doc.text(`CGST (${invoice.cgst_rate || 0}%)`, sumX, y);
+    doc.text(`CGST (${invoice.cgst_rate || 0}%)`, labelX, y);
     doc.text(formatINR(cgst), valX, y, { align: "right" });
-    y += 6;
-    doc.text(`SGST (${invoice.sgst_rate || 0}%)`, sumX, y);
+    y += 7;
+    doc.text(`SGST (${invoice.sgst_rate || 0}%)`, labelX, y);
     doc.text(formatINR(sgst), valX, y, { align: "right" });
-    y += 6;
+    y += 7;
   }
   if (igst > 0) {
-    doc.text(`IGST (${invoice.igst_rate || 0}%)`, sumX, y);
+    doc.text(`IGST (${invoice.igst_rate || 0}%)`, labelX, y);
     doc.text(formatINR(igst), valX, y, { align: "right" });
-    y += 6;
+    y += 7;
   }
 
-  // Separator before total
-  doc.setDrawColor(200);
-  doc.line(sumX, y - 2, valX, y - 2);
-  y += 3;
-
-  doc.setFontSize(11);
+  doc.text("Total Amount:", labelX, y);
   doc.setFont("helvetica", "bold");
-  doc.text("TOTAL", sumX, y);
   doc.text(formatINR(invoice.total_amount || 0), valX, y, { align: "right" });
-  y += 8;
+  y += 7;
 
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("Amount Paid", sumX, y);
+  doc.text("Advance Paid:", labelX, y);
   doc.setTextColor(34, 139, 34);
   doc.text(formatINR(invoice.amount_paid || 0), valX, y, { align: "right" });
   doc.setTextColor(0);
-  y += 6;
+  y += 7;
 
   doc.setFont("helvetica", "bold");
-  doc.text("Balance Due", sumX, y);
+  doc.setTextColor(200, 0, 0);
+  doc.text("Balance Due:", labelX, y);
   const balanceDue = Number(invoice.balance_due || 0);
-  if (balanceDue > 0) doc.setTextColor(200, 0, 0);
   doc.text(formatINR(balanceDue), valX, y, { align: "right" });
   doc.setTextColor(0);
 
-  // Notes
+  y += 14;
+
+  // Terms & Notes
   if (invoice.notes) {
-    const notesY = (doc as any).lastAutoTable.finalY + 12;
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text("TERMS & NOTES:", 16, notesY);
+    doc.text("Terms & Conditions:", 16, y);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    const lines = doc.splitTextToSize(invoice.notes, 90);
-    doc.text(lines, 16, notesY + 5);
+    const lines = doc.splitTextToSize(invoice.notes, 100);
+    doc.text(lines, 16, y + 5);
+    y += 5 + lines.length * 4;
   }
+
+  // Signature section
+  y = Math.max(y + 10, 260);
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.3);
+  doc.line(16, y, 70, y);
+  doc.line(140, y, 196, y);
+  y += 5;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text("Customer Signature", 16, y);
+  doc.setFont("helvetica", "bold");
+  doc.text("Authorized Signatory", 196, y, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text(settings.company_name || "", 196, y + 4, { align: "right" });
 
   addFooter(doc, settings);
   return doc;
