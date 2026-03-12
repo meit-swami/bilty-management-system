@@ -63,8 +63,11 @@ export default function Bilties() {
   });
 
   const handleDownloadPDF = async (bilty: any) => {
-    const { data: items } = await supabase.from("bilty_items").select("*").eq("bilty_id", bilty.id);
-    const doc = await generateBiltyPDF(bilty, items || [], settings || {});
+    const [{ data: items }, { data: bills }] = await Promise.all([
+      supabase.from("bilty_items").select("*").eq("bilty_id", bilty.id),
+      supabase.from("bilty_bills").select("*").eq("bilty_id", bilty.id),
+    ]);
+    const doc = await generateBiltyPDF(bilty, items || [], settings || {}, bills || []);
     doc.save(`${bilty.bilty_number}.pdf`);
   };
 

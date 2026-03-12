@@ -116,12 +116,15 @@ function addFooter(doc: jsPDF, settings: CompanySettings) {
 export async function generateBiltyPDF(
   bilty: any,
   items: any[],
-  settings: CompanySettings
+  settings: CompanySettings,
+  billEntries: any[] = []
 ) {
   const doc = new jsPDF();
   let y = await addDarkHeader(doc, settings, "Bilty");
 
-  // Two-column meta: Bilty Details (left) | Transport Details (right)
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  // ── Two-column: Bilty Details (left) | Transport Details (right) ──
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(80);
@@ -130,50 +133,39 @@ export async function generateBiltyPDF(
   y += 7;
 
   doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("Bilty No", 16, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(bilty.bilty_number, 50, y);
-  y += 5;
-
-  doc.setFont("helvetica", "bold");
-  doc.text("Date", 16, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(formatDate(bilty.bilty_date), 50, y);
-  y += 5;
-
-  if (bilty.eway_bill_number) {
+  const addField = (label: string, value: string, x: number, yPos: number) => {
     doc.setFont("helvetica", "bold");
-    doc.text("E-way Bill", 16, y);
+    doc.text(label, x, yPos);
     doc.setFont("helvetica", "normal");
-    doc.text(bilty.eway_bill_number, 50, y);
-    y += 5;
-  }
+    doc.text(value || "—", x + 32, yPos);
+  };
+
+  addField("Bilty No", bilty.bilty_number, 16, y);
+  const leftStartY = y;
+  y += 5;
+  addField("Date", formatDate(bilty.bilty_date), 16, y);
+  y += 5;
 
   // Right column – Transport Details
-  const rightStartY = y - (bilty.eway_bill_number ? 17 : 12);
-  const rx = 130;
-
+  const rx = 120;
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(80);
-  doc.text("TRANSPORT:", rx, rightStartY);
+  doc.text("TRANSPORT DETAILS:", rx, leftStartY - 7);
   doc.setTextColor(0);
 
-  let rty = rightStartY + 7;
+  let rty = leftStartY;
   doc.setFontSize(9);
   if (bilty.vehicle_number) {
-    doc.setFont("helvetica", "bold");
-    doc.text("Vehicle", rx, rty);
-    doc.setFont("helvetica", "normal");
-    doc.text(bilty.vehicle_number, rx + 28, rty);
+    addField("Vehicle", bilty.vehicle_number, rx, rty);
     rty += 5;
   }
   if (bilty.driver_name) {
-    doc.setFont("helvetica", "bold");
-    doc.text("Driver", rx, rty);
-    doc.setFont("helvetica", "normal");
-    doc.text(bilty.driver_name, rx + 28, rty);
+    addField("Driver", bilty.driver_name, rx, rty);
+    rty += 5;
+  }
+  if (bilty.driver_mobile) {
+    addField("Mobile", bilty.driver_mobile, rx, rty);
     rty += 5;
   }
 
@@ -182,10 +174,46 @@ export async function generateBiltyPDF(
   // Separator
   doc.setDrawColor(220);
   doc.setLineWidth(0.3);
-  doc.line(16, y, 194, y);
+  doc.line(16, y, pageWidth - 16, y);
   y += 6;
 
-  // Consignor / Consignee two-column
+  // ── Bill & E-way Details ──
+  const billsToShow = billEntries.length > 0
+    ? billEntries
+    : (bilty.bill_number || bilty.eway_bill_number)
+      ? [{ bill_number: bilty.bill_number, bill_date: bilty.bill_date, eway_bill_number: bilty.eway_bill_number }]
+      : [];
+
+  if (billsToShow.length > 0) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(80);
+    doc.text("BILL & E-WAY DETAILS:", 16, y);
+    doc.setTextColor(0);
+    y += 2;
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Bill Number", "Bill Date", "E-way Bill Number"]],
+      body: billsToShow.map(b => [
+        b.bill_number || "—",
+        b.bill_date ? formatDate(b.bill_date) : "—",
+        b.eway_bill_number || "—",
+      ]),
+      theme: "striped",
+      headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 9, lineWidth: 0 },
+      styles: { fontSize: 9, cellPadding: 3, lineColor: [230, 230, 230], lineWidth: 0 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { left: 16, right: 16 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
+
+    doc.setDrawColor(220);
+    doc.setLineWidth(0.3);
+    doc.line(16, y - 4, pageWidth - 16, y - 4);
+  }
+
+  // ── Consignor / Consignee two-column ──
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(80);
@@ -217,11 +245,11 @@ export async function generateBiltyPDF(
   }
   y += 6;
 
-  // Goods table
+  // ── Goods table ──
   if (items.length > 0) {
     autoTable(doc, {
       startY: y,
-      head: [["#", "Description", "Qty", "Weight (kg)", "Rate (₹)", "Amount (₹)"]],
+      head: [["#", "Description", "Qty", "Weight (kg)", "Rate", "Amount"]],
       body: items.map((item, idx) => [
         idx + 1, item.description, item.quantity || 0, item.weight || 0,
         formatINR(item.rate || 0), formatINR(item.amount || 0),
@@ -235,18 +263,18 @@ export async function generateBiltyPDF(
       didDrawPage() {
         doc.setDrawColor(30);
         doc.setLineWidth(0.5);
-        doc.line(16, y + 10, 194, y + 10);
+        doc.line(16, y + 10, pageWidth - 16, y + 10);
       },
     });
     y = (doc as any).lastAutoTable.finalY + 12;
   }
 
-  // Financial summary
+  // ── Financial summary ──
   const sumX = 120;
   const valX = 190;
   doc.setFontSize(10);
 
-  const addLine = (label: string, val: number, bold = false) => {
+  const addSumLine = (label: string, val: number, bold = false) => {
     if (!val && !bold) return;
     doc.setFont("helvetica", bold ? "bold" : "normal");
     doc.text(label, sumX, y);
@@ -254,11 +282,11 @@ export async function generateBiltyPDF(
     y += 6;
   };
 
-  addLine("Freight", bilty.freight_amount);
-  addLine("Loading Charges", bilty.loading_charges);
-  addLine("Unloading Charges", bilty.unloading_charges);
-  addLine("Weight Charges", bilty.weight_charges);
-  addLine("Other Charges", bilty.other_charges);
+  addSumLine("Freight", bilty.freight_amount);
+  addSumLine("Loading Charges", bilty.loading_charges);
+  addSumLine("Unloading Charges", bilty.unloading_charges);
+  addSumLine("Weight Charges", bilty.weight_charges);
+  addSumLine("Other Charges", bilty.other_charges);
 
   // Separator before total
   doc.setDrawColor(200);
@@ -285,6 +313,18 @@ export async function generateBiltyPDF(
   if (bal > 0) doc.setTextColor(200, 0, 0);
   doc.text(formatINR(bal), valX, y, { align: "right" });
   doc.setTextColor(0);
+  y += 10;
+
+  // ── Notes ──
+  if (bilty.notes) {
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("NOTES:", 16, y);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    const lines = doc.splitTextToSize(bilty.notes, 90);
+    doc.text(lines, 16, y + 5);
+  }
 
   addFooter(doc, settings);
   return doc;
