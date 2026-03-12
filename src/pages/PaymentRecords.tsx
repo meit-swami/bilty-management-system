@@ -4,13 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -20,9 +19,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { formatINR, formatDate } from "@/lib/format";
-import { PlusCircle, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, FileDown } from "lucide-react";
 import { swalSuccess, swalError } from "@/lib/swal";
 import { useRealtimeTable } from "@/hooks/use-realtime-query";
+import { generatePaymentReceiptPDF } from "@/lib/pdf-receipt";
 
 const emptyForm = {
   payment_date: new Date().toISOString().split("T")[0],
@@ -61,12 +61,19 @@ export default function PaymentRecords() {
     },
   });
 
+  const { data: settings } = useQuery({
+    queryKey: ["company-settings"],
+    queryFn: async () => {
+      const { data } = await supabase.from("company_settings").select("*").maybeSingle();
+      return data;
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.amount || form.amount <= 0) throw new Error("Amount is required");
 
       if (editId) {
-        // Update existing
         const { error } = await supabase.from("payment_records").update({
           payment_date: form.payment_date,
           invoice_id: form.invoice_id || null,
@@ -98,7 +105,6 @@ export default function PaymentRecords() {
 
       // Recalculate invoice payment status if linked
       if (form.invoice_id) {
-        // Sum all payments for this invoice
         const { data: allPayments } = await supabase.from("payment_records").select("amount").eq("invoice_id", form.invoice_id);
         const totalPaid = (allPayments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
         const inv = invoices.find((i) => i.id === form.invoice_id);
@@ -130,7 +136,6 @@ export default function PaymentRecords() {
       const { error } = await supabase.from("payment_records").delete().eq("id", payment.id);
       if (error) throw error;
 
-      // Recalculate invoice if linked
       if (payment.invoice_id) {
         const { data: remainingPayments } = await supabase.from("payment_records").select("amount").eq("invoice_id", payment.invoice_id);
         const totalPaid = (remainingPayments || []).reduce((s, p) => s + Number(p.amount || 0), 0);
@@ -155,6 +160,12 @@ export default function PaymentRecords() {
     onError: (err: Error) => swalError(err.message),
   });
 
+  const handleDownloadReceipt = async (payment: any) => {
+    const inv = payment.invoice_id ? invoices.find(i => i.id === payment.invoice_id) : null;
+    const doc = await generatePaymentReceiptPDF(payment, inv, settings || {});
+    doc.save(`${payment.payment_number}.pdf`);
+  };
+
   const openEdit = (p: any) => {
     setEditId(p.id);
     setForm({
@@ -177,6 +188,15 @@ export default function PaymentRecords() {
   };
 
   const totalReceived = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+  // Party-level outstanding from invoices
+  const partyOutstanding = invoices.reduce((acc: Record<string, number>, inv) => {
+    const name = inv.party_name || "Unknown";
+    acc[name] = (acc[name] || 0) + Number(inv.balance_due || 0);
+    return acc;
+  }, {});
+  const outstandingEntries = Object.entries(partyOutstanding).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const totalOutstanding = outstandingEntries.reduce((s, [, v]) => s + v, 0);
 
   return (
     <div className="space-y-6">
@@ -238,7 +258,29 @@ export default function PaymentRecords() {
         </DialogContent>
       </Dialog>
 
-      <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Received</p><p className="text-2xl font-bold text-emerald-600">{formatINR(totalReceived)}</p></CardContent></Card>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Received</p><p className="text-2xl font-bold text-emerald-600">{formatINR(totalReceived)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Total Outstanding</p><p className="text-2xl font-bold text-destructive">{formatINR(totalOutstanding)}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Payments Count</p><p className="text-2xl font-bold">{payments.length}</p></CardContent></Card>
+      </div>
+
+      {/* Party Outstanding */}
+      {outstandingEntries.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold mb-3">Party-wise Outstanding</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {outstandingEntries.slice(0, 8).map(([name, amount]) => (
+                <div key={name} className="flex justify-between items-center p-2 rounded bg-muted/50">
+                  <span className="text-sm truncate mr-2">{name}</span>
+                  <span className="text-sm font-semibold text-destructive whitespace-nowrap">{formatINR(amount)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-4">
@@ -254,48 +296,54 @@ export default function PaymentRecords() {
                 <TableHead>Payment No</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Party</TableHead>
+                <TableHead>Invoice</TableHead>
                 <TableHead>Method</TableHead>
                 <TableHead>Reference</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
+                <TableHead className="w-28">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
               ) : payments.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No payments recorded</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No payments recorded</TableCell></TableRow>
               ) : (
-                payments.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.payment_number}</TableCell>
-                    <TableCell>{formatDate(p.payment_date)}</TableCell>
-                    <TableCell>{p.party_name || "—"}</TableCell>
-                    <TableCell className="capitalize">{(p.payment_method || "").replace("_", " ")}</TableCell>
-                    <TableCell>{p.reference_number || "—"}</TableCell>
-                    <TableCell className="text-right font-medium">{formatINR(Number(p.amount || 0))}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(p)} title="Edit"><Pencil className="h-4 w-4" /></Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" title="Delete"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete payment {p.payment_number}?</AlertDialogTitle>
-                              <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteMutation.mutate(p)}>Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                payments.map((p) => {
+                  const inv = p.invoice_id ? invoices.find(i => i.id === p.invoice_id) : null;
+                  return (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.payment_number}</TableCell>
+                      <TableCell>{formatDate(p.payment_date)}</TableCell>
+                      <TableCell>{p.party_name || "—"}</TableCell>
+                      <TableCell>{inv?.invoice_number || "—"}</TableCell>
+                      <TableCell className="capitalize">{(p.payment_method || "").replace("_", " ")}</TableCell>
+                      <TableCell>{p.reference_number || "—"}</TableCell>
+                      <TableCell className="text-right font-medium">{formatINR(Number(p.amount || 0))}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleDownloadReceipt(p)} title="Download Receipt"><FileDown className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(p)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" title="Delete"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete payment {p.payment_number}?</AlertDialogTitle>
+                                <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteMutation.mutate(p)}>Delete</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
