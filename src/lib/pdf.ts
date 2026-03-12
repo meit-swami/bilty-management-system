@@ -225,6 +225,10 @@ export async function generateBiltyPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
 
+  const leftColWidth = 85;
+  const rightColWidth = 80;
+  const rightColX = 110;
+
   const consignorLines = [
     bilty.consignor_name, bilty.consignor_address,
     bilty.consignor_gstin ? `GSTIN: ${bilty.consignor_gstin}` : null,
@@ -237,10 +241,23 @@ export async function generateBiltyPDF(
     bilty.ship_to ? `Ship To: ${bilty.ship_to}` : null,
   ].filter(Boolean);
 
-  const maxLines = Math.max(consignorLines.length, consigneeLines.length);
+  // Wrap each line to fit column width
+  const wrappedLeft: string[] = [];
+  consignorLines.forEach(line => {
+    const split = doc.splitTextToSize(line!, leftColWidth);
+    wrappedLeft.push(...split);
+  });
+
+  const wrappedRight: string[] = [];
+  consigneeLines.forEach(line => {
+    const split = doc.splitTextToSize(line!, rightColWidth);
+    wrappedRight.push(...split);
+  });
+
+  const maxLines = Math.max(wrappedLeft.length, wrappedRight.length);
   for (let i = 0; i < maxLines; i++) {
-    if (consignorLines[i]) doc.text(consignorLines[i]!, 16, y);
-    if (consigneeLines[i]) doc.text(consigneeLines[i]!, 110, y);
+    if (wrappedLeft[i]) doc.text(wrappedLeft[i], 16, y);
+    if (wrappedRight[i]) doc.text(wrappedRight[i], rightColX, y);
     y += 5;
   }
   y += 6;
