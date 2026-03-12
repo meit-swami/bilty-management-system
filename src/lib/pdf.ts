@@ -402,36 +402,62 @@ export async function generateInvoicePDF(
   doc.line(16, y, 194, y);
   y += 8;
 
-  // Items table
+  // Items table with transporter details
   const tableBody = invoiceItems.map((item, idx) => {
     const bilty = bilties.find((b) => b.id === item.bilty_id);
+    // Collect goods descriptions from bilty items if available
+    const goodsDesc = bilty?.items_text || "—";
     return [
       idx + 1,
       bilty?.bilty_number || "—",
       bilty ? formatDate(bilty.bilty_date) : "—",
+      goodsDesc,
       bilty?.consignor_name || "—",
-      bilty?.consignee_name || "—",
+      bilty?.vehicle_number || "—",
+      formatINR(bilty?.freight_amount || 0),
+      formatINR(bilty?.loading_charges || 0),
+      formatINR(bilty?.unloading_charges || 0),
+      formatINR(bilty?.weight_charges || 0),
       formatINR(item.amount || 0),
     ];
   });
 
   autoTable(doc, {
     startY: y,
-    head: [["#", "Bilty No", "Date", "Consignor", "Consignee", "Amount"]],
+    head: [["S.No", "Bilty No", "Date", "Goods", "From", "Vehicle", "Freight", "Loading", "Unloading", "Weight\nChg", "Total"]],
     body: tableBody,
     theme: "striped",
-    headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 9, lineWidth: 0 },
-    styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0 },
+    headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 7, lineWidth: 0.2, lineColor: [180, 180, 180] },
+    styles: { fontSize: 7, cellPadding: 3, lineColor: [200, 200, 200], lineWidth: 0.2 },
     alternateRowStyles: { fillColor: [248, 250, 252] },
-    columnStyles: { 0: { halign: "center", cellWidth: 12 }, 5: { halign: "right", fontStyle: "bold" } },
-    margin: { left: 16, right: 16 },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 12 },
+      1: { cellWidth: 18 },
+      2: { cellWidth: 18 },
+      3: { cellWidth: 28 },
+      4: { cellWidth: 22 },
+      5: { cellWidth: 18 },
+      6: { halign: "right", cellWidth: 16 },
+      7: { halign: "right", cellWidth: 16 },
+      8: { halign: "right", cellWidth: 18 },
+      9: { halign: "right", cellWidth: 14 },
+      10: { halign: "right", fontStyle: "bold", cellWidth: 16 },
+    },
+    margin: { left: 10, right: 10 },
     didDrawPage() {
       doc.setDrawColor(30);
       doc.setLineWidth(0.5);
-      doc.line(16, y + 10, 194, y + 10);
+      doc.line(10, y + 10, 200, y + 10);
     },
   });
-  y = (doc as any).lastAutoTable.finalY + 12;
+  y = (doc as any).lastAutoTable.finalY + 8;
+
+  // Grand Total row
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Grand Total:", 145, y);
+  doc.text(formatINR(invoice.subtotal || 0), 196, y, { align: "right" });
+  y += 10;
 
   // Financial summary
   const cgst = Number(invoice.cgst_amount || 0);
