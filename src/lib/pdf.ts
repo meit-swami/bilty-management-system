@@ -476,71 +476,98 @@ export async function generateInvoicePDF(
   doc.text(formatINR(invoice.subtotal || 0), 196, y, { align: "right" });
   y += 10;
 
-  // Financial summary
+  // Payment Summary box (right-aligned like reference)
   const cgst = Number(invoice.cgst_amount || 0);
   const sgst = Number(invoice.sgst_amount || 0);
   const igst = Number(invoice.igst_amount || 0);
 
-  const sumX = 120;
-  const valX = 190;
-  doc.setFontSize(10);
+  const boxX = 120;
+  const boxW = 76;
+  const labelX = boxX + 4;
+  const valX = boxX + boxW - 4;
 
+  // Calculate box height
+  let lineCount = 3; // Total, Advance, Balance
+  if (cgst > 0) lineCount += 2;
+  if (igst > 0) lineCount += 1;
+  const boxH = 10 + lineCount * 7;
+
+  // Draw box border
+  doc.setDrawColor(200, 150, 50);
+  doc.setLineWidth(0.8);
+  doc.roundedRect(boxX, y - 2, boxW, boxH, 1, 1, "S");
+
+  // Header
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text("Payment Summary", boxX + boxW / 2, y + 5, { align: "center" });
+  y += 12;
+
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("Subtotal", sumX, y);
-  doc.text(formatINR(invoice.subtotal || 0), valX, y, { align: "right" });
-  y += 6;
 
   if (cgst > 0) {
-    doc.text(`CGST (${invoice.cgst_rate || 0}%)`, sumX, y);
+    doc.text(`CGST (${invoice.cgst_rate || 0}%)`, labelX, y);
     doc.text(formatINR(cgst), valX, y, { align: "right" });
-    y += 6;
-    doc.text(`SGST (${invoice.sgst_rate || 0}%)`, sumX, y);
+    y += 7;
+    doc.text(`SGST (${invoice.sgst_rate || 0}%)`, labelX, y);
     doc.text(formatINR(sgst), valX, y, { align: "right" });
-    y += 6;
+    y += 7;
   }
   if (igst > 0) {
-    doc.text(`IGST (${invoice.igst_rate || 0}%)`, sumX, y);
+    doc.text(`IGST (${invoice.igst_rate || 0}%)`, labelX, y);
     doc.text(formatINR(igst), valX, y, { align: "right" });
-    y += 6;
+    y += 7;
   }
 
-  // Separator before total
-  doc.setDrawColor(200);
-  doc.line(sumX, y - 2, valX, y - 2);
-  y += 3;
-
-  doc.setFontSize(11);
+  doc.text("Total Amount:", labelX, y);
   doc.setFont("helvetica", "bold");
-  doc.text("TOTAL", sumX, y);
   doc.text(formatINR(invoice.total_amount || 0), valX, y, { align: "right" });
-  y += 8;
+  y += 7;
 
-  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text("Amount Paid", sumX, y);
+  doc.text("Advance Paid:", labelX, y);
   doc.setTextColor(34, 139, 34);
   doc.text(formatINR(invoice.amount_paid || 0), valX, y, { align: "right" });
   doc.setTextColor(0);
-  y += 6;
+  y += 7;
 
   doc.setFont("helvetica", "bold");
-  doc.text("Balance Due", sumX, y);
+  doc.setTextColor(200, 0, 0);
+  doc.text("Balance Due:", labelX, y);
   const balanceDue = Number(invoice.balance_due || 0);
-  if (balanceDue > 0) doc.setTextColor(200, 0, 0);
   doc.text(formatINR(balanceDue), valX, y, { align: "right" });
   doc.setTextColor(0);
 
-  // Notes
+  y += 14;
+
+  // Terms & Notes
   if (invoice.notes) {
-    const notesY = (doc as any).lastAutoTable.finalY + 12;
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
-    doc.text("TERMS & NOTES:", 16, notesY);
+    doc.text("Terms & Conditions:", 16, y);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    const lines = doc.splitTextToSize(invoice.notes, 90);
-    doc.text(lines, 16, notesY + 5);
+    const lines = doc.splitTextToSize(invoice.notes, 100);
+    doc.text(lines, 16, y + 5);
+    y += 5 + lines.length * 4;
   }
+
+  // Signature section
+  y = Math.max(y + 10, 260);
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.3);
+  doc.line(16, y, 70, y);
+  doc.line(140, y, 196, y);
+  y += 5;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text("Customer Signature", 16, y);
+  doc.setFont("helvetica", "bold");
+  doc.text("Authorized Signatory", 196, y, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text(settings.company_name || "", 196, y + 4, { align: "right" });
 
   addFooter(doc, settings);
   return doc;
