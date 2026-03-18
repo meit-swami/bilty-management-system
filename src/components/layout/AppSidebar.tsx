@@ -41,27 +41,27 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainNav = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Master Data", path: "/master-data", icon: Database },
-  { label: "All Bilties", path: "/bilties", icon: Truck },
-  { label: "Parties", path: "/parties", icon: Users2 },
+  { label: "Dashboard", path: "/", icon: LayoutDashboard, module: "dashboard" },
+  { label: "Master Data", path: "/master-data", icon: Database, module: "master_data" },
+  { label: "All Bilties", path: "/bilties", icon: Truck, module: "bilties" },
+  { label: "Parties", path: "/parties", icon: Users2, module: "parties" },
 ];
 
 const salesNav = [
-  { label: "Invoices", path: "/invoices", icon: FileText },
-  { label: "Payment Records", path: "/payments", icon: CreditCard },
-  { label: "Proposals", path: "/proposals", icon: FileSignature },
-  { label: "Leads", path: "/leads", icon: Target },
+  { label: "Invoices", path: "/invoices", icon: FileText, module: "invoices" },
+  { label: "Payment Records", path: "/payments", icon: CreditCard, module: "payments" },
+  { label: "Proposals", path: "/proposals", icon: FileSignature, module: "proposals" },
+  { label: "Leads", path: "/leads", icon: Target, module: "leads" },
 ];
 
 const otherNav = [
-  { label: "Reports", path: "/reports", icon: BarChart3 },
-  { label: "Expenses", path: "/expenses", icon: Wallet },
-  { label: "Email", path: "/email", icon: Mail },
-  { label: "Settings", path: "/settings", icon: Settings },
-  { label: "Backup", path: "/backup", icon: HardDrive },
-  { label: "Users", path: "/users", icon: UserCog },
-  { label: "Audit Log", path: "/audit-log", icon: ClipboardList },
+  { label: "Reports", path: "/reports", icon: BarChart3, module: "reports" },
+  { label: "Expenses", path: "/expenses", icon: Wallet, module: "expenses" },
+  { label: "Email", path: "/email", icon: Mail, module: "email" },
+  { label: "Settings", path: "/settings", icon: Settings, module: "settings" },
+  { label: "Backup", path: "/backup", icon: HardDrive, module: "backup" },
+  { label: "Users", path: "/users", icon: UserCog, module: "users" },
+  { label: "Audit Log", path: "/audit-log", icon: ClipboardList, module: "audit_log" },
 ];
 
 export function AppSidebar() {
