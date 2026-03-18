@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsSuperAdmin } from "@/hooks/use-rbac";
 import { useCompanyName } from "@/hooks/use-company-settings";
+import { useAllModulePermissions, canReadModule } from "@/hooks/use-all-module-permissions";
 import {
   LayoutDashboard,
   Database,
