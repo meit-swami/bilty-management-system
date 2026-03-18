@@ -62,6 +62,8 @@ function AppRoutes() {
   }, [companySettings?.favicon_url]);
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading...</div>;
+
+  return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <Register />} />
