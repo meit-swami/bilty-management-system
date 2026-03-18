@@ -66,7 +66,7 @@ async function addDarkHeader(
   }
 
   // Company details – right aligned, white
-  const name = settings.company_name || "Simple Capital Solutions";
+  const name = settings.company_name || "Setu Go";
   doc.setFontSize(13);
   doc.setFont("helvetica", "bold");
   doc.text(name, pageWidth - 16, 18, { align: "right" });
