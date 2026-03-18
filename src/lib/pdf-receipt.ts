@@ -62,7 +62,7 @@ export async function generatePaymentReceiptPDF(
   }
 
   // Company name right
-  const name = settings.company_name || "Simple Capital Solutions";
+  const name = settings.company_name || "Setu Go";
   doc.setFontSize(12);
   doc.text(name, pageWidth - 16, 18, { align: "right" });
   doc.setFontSize(8);
