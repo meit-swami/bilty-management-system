@@ -49,25 +49,7 @@ export default function Invoices() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (inv: any) => {
-      const { data: invItems } = await supabase.from("invoice_items").select("bilty_id").eq("invoice_id", inv.id);
-      const biltyIds = (invItems || []).map((i) => i.bilty_id);
-      await supabase.from("invoice_items").delete().eq("invoice_id", inv.id);
-      const { error } = await supabase.from("invoices").delete().eq("id", inv.id);
-      if (error) throw error;
-      if (biltyIds.length > 0) {
-        await supabase.from("bilties").update({ status: "unbilled" }).in("id", biltyIds);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["bilties"] });
-      queryClient.invalidateQueries({ queryKey: ["unbilled-bilties"] });
-      toast({ title: "Invoice deleted" });
-    },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
+
 
   const totalAmount = invoices.reduce((s, i) => s + Number(i.total_amount || 0), 0);
   const totalPaid = invoices.reduce((s, i) => s + Number(i.amount_paid || 0), 0);
