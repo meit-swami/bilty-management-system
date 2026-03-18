@@ -13,7 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify the caller is authenticated and is an admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -25,28 +24,23 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Client with caller's token to verify admin status
     const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsError } = await callerClient.auth.getClaims(token);
-    if (claimsError || !claims?.claims?.sub) {
+    const { data: { user: caller } } = await callerClient.auth.getUser();
+    if (!caller) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const callerId = claims.claims.sub;
-
-    // Check if caller is admin using service role
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
     const { data: callerRoles } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", callerId);
+      .eq("user_id", caller.id);
 
     const isAdmin = (callerRoles || []).some(
       (r: any) => r.role === "super_admin" || r.role === "admin"
@@ -68,7 +62,6 @@ serve(async (req) => {
       });
     }
 
-    // Create user with service role
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
@@ -83,7 +76,6 @@ serve(async (req) => {
       });
     }
 
-    // Update profile with phone
     if (phone) {
       await adminClient
         .from("profiles")
@@ -91,7 +83,6 @@ serve(async (req) => {
         .eq("user_id", newUser.user.id);
     }
 
-    // Assign roles (support both single role and array)
     const rolesToAssign = roles ? (Array.isArray(roles) ? roles : [roles]) : (role ? [role] : []);
     for (const r of rolesToAssign) {
       await adminClient.from("user_roles").insert({
