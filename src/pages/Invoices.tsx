@@ -12,10 +12,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+// AlertDialog imports removed - invoice deletion disabled
 import { formatINR, formatDate } from "@/lib/format";
 import { PlusCircle, X, FileDown, Link2, Pencil, Trash2, FileText, IndianRupee, CircleCheck, CircleAlert } from "lucide-react";
 import { useRealtimeTable } from "@/hooks/use-realtime-query";
