@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsSuperAdmin } from "@/hooks/use-rbac";
 import { useCompanyName } from "@/hooks/use-company-settings";
+import { useAllModulePermissions, canReadModule } from "@/hooks/use-all-module-permissions";
 import {
   LayoutDashboard,
   Database,
@@ -40,27 +41,27 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainNav = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Master Data", path: "/master-data", icon: Database },
-  { label: "All Bilties", path: "/bilties", icon: Truck },
-  { label: "Parties", path: "/parties", icon: Users2 },
+  { label: "Dashboard", path: "/", icon: LayoutDashboard, module: "dashboard" },
+  { label: "Master Data", path: "/master-data", icon: Database, module: "master_data" },
+  { label: "All Bilties", path: "/bilties", icon: Truck, module: "bilties" },
+  { label: "Parties", path: "/parties", icon: Users2, module: "parties" },
 ];
 
 const salesNav = [
-  { label: "Invoices", path: "/invoices", icon: FileText },
-  { label: "Payment Records", path: "/payments", icon: CreditCard },
-  { label: "Proposals", path: "/proposals", icon: FileSignature },
-  { label: "Leads", path: "/leads", icon: Target },
+  { label: "Invoices", path: "/invoices", icon: FileText, module: "invoices" },
+  { label: "Payment Records", path: "/payments", icon: CreditCard, module: "payments" },
+  { label: "Proposals", path: "/proposals", icon: FileSignature, module: "proposals" },
+  { label: "Leads", path: "/leads", icon: Target, module: "leads" },
 ];
 
 const otherNav = [
-  { label: "Reports", path: "/reports", icon: BarChart3 },
-  { label: "Expenses", path: "/expenses", icon: Wallet },
-  { label: "Email", path: "/email", icon: Mail },
-  { label: "Settings", path: "/settings", icon: Settings },
-  { label: "Backup", path: "/backup", icon: HardDrive },
-  { label: "Users", path: "/users", icon: UserCog },
-  { label: "Audit Log", path: "/audit-log", icon: ClipboardList },
+  { label: "Reports", path: "/reports", icon: BarChart3, module: "reports" },
+  { label: "Expenses", path: "/expenses", icon: Wallet, module: "expenses" },
+  { label: "Email", path: "/email", icon: Mail, module: "email" },
+  { label: "Settings", path: "/settings", icon: Settings, module: "settings" },
+  { label: "Backup", path: "/backup", icon: HardDrive, module: "backup" },
+  { label: "Users", path: "/users", icon: UserCog, module: "users" },
+  { label: "Audit Log", path: "/audit-log", icon: ClipboardList, module: "audit_log" },
 ];
 
 export function AppSidebar() {
@@ -71,6 +72,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const companyName = useCompanyName();
   const isSuperAdmin = useIsSuperAdmin();
+  const { permissions, isAdmin } = useAllModulePermissions();
 
   const handleLogout = async () => {
     await logout();
@@ -81,6 +83,9 @@ export function AppSidebar() {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+
+  const filterNav = (items: typeof mainNav) =>
+    items.filter((item) => canReadModule(permissions, item.module, isAdmin));
 
   const renderNavItems = (items: typeof mainNav) => (
     <SidebarMenu>
@@ -114,30 +119,47 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(mainNav)}</SidebarGroupContent>
-        </SidebarGroup>
+        {filterNav(mainNav).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Main</SidebarGroupLabel>
+            <SidebarGroupContent>{renderNavItems(filterNav(mainNav))}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Sales</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(salesNav)}</SidebarGroupContent>
-        </SidebarGroup>
+        {filterNav(salesNav).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Sales</SidebarGroupLabel>
+            <SidebarGroupContent>{renderNavItems(filterNav(salesNav))}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(otherNav)}</SidebarGroupContent>
-        </SidebarGroup>
+        {filterNav(otherNav).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>System</SidebarGroupLabel>
+            <SidebarGroupContent>{renderNavItems(filterNav(otherNav))}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {isSuperAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
             <SidebarGroupContent>
-              {renderNavItems([
-                { label: "Client Subscriptions", path: "/clients", icon: Crown },
-                { label: "Registrations", path: "/registrations", icon: UserCheck },
-                { label: "All Users", path: "/all-users", icon: UsersRound },
-              ])}
+              <SidebarMenu>
+                {[
+                  { label: "Client Subscriptions", path: "/clients", icon: Crown },
+                  { label: "Registrations", path: "/registrations", icon: UserCheck },
+                  { label: "All Users", path: "/all-users", icon: UsersRound },
+                ].map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild isActive={isActive(item.path)} tooltip={item.label}>
+                      <Link to={item.path}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
