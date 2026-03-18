@@ -144,11 +144,22 @@ export function AppSidebar() {
           <SidebarGroup>
             <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
             <SidebarGroupContent>
-              {renderNavItems([
-                { label: "Client Subscriptions", path: "/clients", icon: Crown },
-                { label: "Registrations", path: "/registrations", icon: UserCheck },
-                { label: "All Users", path: "/all-users", icon: UsersRound },
-              ])}
+              <SidebarMenu>
+                {[
+                  { label: "Client Subscriptions", path: "/clients", icon: Crown },
+                  { label: "Registrations", path: "/registrations", icon: UserCheck },
+                  { label: "All Users", path: "/all-users", icon: UsersRound },
+                ].map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton asChild isActive={isActive(item.path)} tooltip={item.label}>
+                      <Link to={item.path}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         )}
