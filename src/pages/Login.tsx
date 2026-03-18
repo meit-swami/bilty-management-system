@@ -62,14 +62,14 @@ export default function Login() {
           </div>
           <div>
             <a
-              href="http://simplecapital.co.in/"
+              href="https://setugo.in/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xl font-bold text-foreground hover:text-primary transition-colors"
             >
-              Simple Capital Solutions
+              Setu Go
             </a>
-            <p className="text-xs text-muted-foreground mt-1">Transport Management System</p>
+            <p className="text-xs text-muted-foreground mt-1">Bilty Management System</p>
           </div>
         </CardHeader>
         <CardContent>
@@ -144,9 +144,9 @@ export default function Login() {
             </>
           )}
           <p className="text-[10px] text-muted-foreground text-center mt-6">
-            © Simple Capital Solutions •{" "}
-            <a href="http://simplecapital.co.in/" target="_blank" rel="noopener noreferrer" className="hover:underline">
-              simplecapital.co.in
+            © Setu Go •{" "}
+            <a href="https://setugo.in/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              setugo.in
             </a>
           </p>
         </CardContent>
