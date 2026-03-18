@@ -119,20 +119,26 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(mainNav)}</SidebarGroupContent>
-        </SidebarGroup>
+        {filterNav(mainNav).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Main</SidebarGroupLabel>
+            <SidebarGroupContent>{renderNavItems(filterNav(mainNav))}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Sales</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(salesNav)}</SidebarGroupContent>
-        </SidebarGroup>
+        {filterNav(salesNav).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Sales</SidebarGroupLabel>
+            <SidebarGroupContent>{renderNavItems(filterNav(salesNav))}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
-        <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
-          <SidebarGroupContent>{renderNavItems(otherNav)}</SidebarGroupContent>
-        </SidebarGroup>
+        {filterNav(otherNav).length > 0 && (
+          <SidebarGroup>
+            <SidebarGroupLabel>System</SidebarGroupLabel>
+            <SidebarGroupContent>{renderNavItems(filterNav(otherNav))}</SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {isSuperAdmin && (
           <SidebarGroup>
