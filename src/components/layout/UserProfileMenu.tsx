@@ -126,7 +126,7 @@ export function UserProfileMenu() {
   const enrollMfa = async () => {
     const { data, error } = await supabase.auth.mfa.enroll({
       factorType: "totp",
-      issuer: "Simple Capital Solutions",
+      issuer: "Setu Go",
     });
     if (error) {
       swalError(error.message);

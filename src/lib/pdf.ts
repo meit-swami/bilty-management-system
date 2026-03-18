@@ -102,7 +102,7 @@ function addFooter(doc: jsPDF, settings: CompanySettings) {
     doc.setFontSize(7);
     doc.setTextColor(150);
     doc.text(
-      `© ${new Date().getFullYear()} ${settings.company_name || "Simple Capital Solutions"} · Developed by BRANDZAHA CREATIVE AGENCY`,
+      `© ${new Date().getFullYear()} ${settings.company_name || "Setu Go"} · Developed by BRANDZAHA CREATIVE AGENCY`,
       105, 288, { align: "center" }
     );
     doc.text(`Page ${i} of ${pageCount}`, 196, 288, { align: "right" });

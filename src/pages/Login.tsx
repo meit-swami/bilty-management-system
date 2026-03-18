@@ -144,9 +144,9 @@ export default function Login() {
             </>
           )}
           <p className="text-[10px] text-muted-foreground text-center mt-6">
-            © Simple Capital Solutions •{" "}
-            <a href="http://simplecapital.co.in/" target="_blank" rel="noopener noreferrer" className="hover:underline">
-              simplecapital.co.in
+            © Setu Go •{" "}
+            <a href="https://setugo.in/" target="_blank" rel="noopener noreferrer" className="hover:underline">
+              setugo.in
             </a>
           </p>
         </CardContent>

@@ -98,7 +98,7 @@ export default function PublicInvoice() {
     );
   }
 
-  const companyName = settings?.company_name || "Simple Capital Solutions";
+  const companyName = settings?.company_name || "Setu Go";
   const gst = Number(invoice.cgst_amount || 0) + Number(invoice.sgst_amount || 0) + Number(invoice.igst_amount || 0);
 
   return (

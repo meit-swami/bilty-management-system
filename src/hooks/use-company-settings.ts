@@ -14,5 +14,5 @@ export function useCompanySettings() {
 
 export function useCompanyName() {
   const { data } = useCompanySettings();
-  return data?.company_name || "Simple Capital Solutions";
+  return data?.company_name || "Setu Go";
 }

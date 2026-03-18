@@ -48,8 +48,8 @@ export function TopNav() {
             <Truck className="h-4 w-4 text-primary-foreground" />
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-semibold leading-tight text-foreground">Simple Capital</p>
-            <p className="text-[10px] leading-tight text-muted-foreground">Solutions</p>
+            <p className="text-sm font-semibold leading-tight text-foreground">Setu Go</p>
+            <p className="text-[10px] leading-tight text-muted-foreground">Bilty Management</p>
           </div>
         </Link>
 
