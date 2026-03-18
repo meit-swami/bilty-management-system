@@ -72,6 +72,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const companyName = useCompanyName();
   const isSuperAdmin = useIsSuperAdmin();
+  const { permissions, isAdmin } = useAllModulePermissions();
 
   const handleLogout = async () => {
     await logout();
@@ -82,6 +83,9 @@ export function AppSidebar() {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+
+  const filterNav = (items: typeof mainNav) =>
+    items.filter((item) => canReadModule(permissions, item.module, isAdmin));
 
   const renderNavItems = (items: typeof mainNav) => (
     <SidebarMenu>
