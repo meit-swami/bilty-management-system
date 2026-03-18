@@ -22,7 +22,7 @@ import { toast } from "@/hooks/use-toast";
 export default function Invoices() {
   useRealtimeTable("invoices", ["invoices"]);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
