@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+// AlertDialog imports removed - invoice deletion disabled
 import { formatINR, formatDate } from "@/lib/format";
 import { PlusCircle, X, FileDown, Link2, Pencil, Trash2, FileText, IndianRupee, CircleCheck, CircleAlert } from "lucide-react";
 import { useRealtimeTable } from "@/hooks/use-realtime-query";
@@ -25,7 +22,7 @@ import { toast } from "@/hooks/use-toast";
 export default function Invoices() {
   useRealtimeTable("invoices", ["invoices"]);
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -52,25 +49,7 @@ export default function Invoices() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: async (inv: any) => {
-      const { data: invItems } = await supabase.from("invoice_items").select("bilty_id").eq("invoice_id", inv.id);
-      const biltyIds = (invItems || []).map((i) => i.bilty_id);
-      await supabase.from("invoice_items").delete().eq("invoice_id", inv.id);
-      const { error } = await supabase.from("invoices").delete().eq("id", inv.id);
-      if (error) throw error;
-      if (biltyIds.length > 0) {
-        await supabase.from("bilties").update({ status: "unbilled" }).in("id", biltyIds);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["bilties"] });
-      queryClient.invalidateQueries({ queryKey: ["unbilled-bilties"] });
-      toast({ title: "Invoice deleted" });
-    },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
+
 
   const totalAmount = invoices.reduce((s, i) => s + Number(i.total_amount || 0), 0);
   const totalPaid = invoices.reduce((s, i) => s + Number(i.amount_paid || 0), 0);
@@ -242,21 +221,9 @@ export default function Invoices() {
                           <Button variant="ghost" size="icon" onClick={() => handleCopyPublicLink(inv)} title="Copy public link">
                             <Link2 className="h-4 w-4" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" title="Delete"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete invoice {inv.invoice_number}?</AlertDialogTitle>
-                                <AlertDialogDescription>This will unbill associated bilties. This action cannot be undone.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteMutation.mutate(inv)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button variant="ghost" size="icon" title="Invoice linked to bilties — cannot delete" disabled className="cursor-not-allowed opacity-50">
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
