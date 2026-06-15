@@ -97,14 +97,67 @@ async function addDarkHeader(
   return 65;
 }
 
-/* ─── Page space helper ─── */
-function ensurePageSpace(doc: jsPDF, y: number, needed: number): number {
-  const pageHeight = doc.internal.pageSize.getHeight();
-  if (y + needed > pageHeight - 22) {
-    doc.addPage();
-    return 20;
+/* ─── Compact header (Bilty only) ─── */
+async function addCompactBiltyHeader(
+  doc: jsPDF,
+  settings: CompanySettings
+) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(22);
+  doc.setFont("helvetica", "bold");
+  doc.text("Bilty", 14, 13);
+
+  const logoUrl = settings.logo_dark_url || settings.logo_light_url;
+  if (logoUrl) {
+    const base64 = await loadImageAsBase64(logoUrl);
+    if (base64) {
+      try {
+        doc.addImage(base64, "PNG", 14, 16, 22, 13);
+      } catch {
+        // skip if image fails
+      }
+    }
   }
-  return y;
+
+  const name = settings.company_name || "Setu Go";
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  doc.text(name, pageWidth - 14, 11, { align: "right" });
+
+  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  let ry = 16;
+  if (settings.address) {
+    doc.text(settings.address, pageWidth - 14, ry, { align: "right" });
+    ry += 3.5;
+  }
+  if (settings.phone) {
+    doc.text(settings.phone, pageWidth - 14, ry, { align: "right" });
+    ry += 3.5;
+  }
+  if (settings.email) {
+    doc.text(settings.email, pageWidth - 14, ry, { align: "right" });
+    ry += 3.5;
+  }
+  if (settings.gstin) {
+    doc.text(`GSTIN: ${settings.gstin}`, pageWidth - 14, ry, { align: "right" });
+  }
+
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.4);
+  doc.line(14, 42, pageWidth - 14, 42);
+
+  doc.setTextColor(0, 0, 0);
+  return 46;
+}
+
+function drawBox(doc: jsPDF, x: number, y: number, w: number, h: number) {
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(0.3);
+  doc.rect(x, y, w, h);
 }
 
 /* ─── Footer ─── */
@@ -138,41 +191,38 @@ export async function generateBiltyPDF(
   for (let copyIdx = 0; copyIdx < copyLabels.length; copyIdx++) {
     if (copyIdx > 0) doc.addPage();
 
-    let y = await addDarkHeader(doc, settings, "Bilty");
+    let y = await addCompactBiltyHeader(doc, settings);
     const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    const boxW = (pageWidth - margin * 2 - 4) / 2;
 
-    // ── Two-column: Bilty Details (left) | Transport Details (right) ──
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(80);
-    doc.text("BILTY DETAILS:", 16, y);
-    doc.setTextColor(0);
-    y += 7;
-
-    doc.setFontSize(9);
-    const addField = (label: string, value: string, x: number, yPos: number) => {
+    doc.setFontSize(8);
+    const addField = (label: string, value: string, x: number, yPos: number, labelW = 28) => {
       doc.setFont("helvetica", "bold");
       doc.text(label, x, yPos);
       doc.setFont("helvetica", "normal");
-      doc.text(value || "—", x + 32, yPos);
+      doc.text(value || "—", x + labelW, yPos);
     };
 
-    addField("Bilty No", bilty.bilty_number, 16, y);
-    const leftStartY = y;
-    y += 5;
-    addField("Date", formatDate(bilty.bilty_date), 16, y);
-    y += 5;
+    // ── Bilty + Transport boxes ──
+    const detailsTop = y;
+    const boxH = 22;
+    drawBox(doc, margin, detailsTop, boxW, boxH);
+    drawBox(doc, margin + boxW + 4, detailsTop, boxW, boxH);
 
-    // Right column – Transport Details
-    const rx = 120;
-    doc.setFontSize(10);
+    doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(80);
-    doc.text("TRANSPORT DETAILS:", rx, leftStartY - 7);
+    doc.text("BILTY DETAILS", margin + 2, detailsTop + 5);
+    doc.text("TRANSPORT DETAILS", margin + boxW + 6, detailsTop + 5);
     doc.setTextColor(0);
 
-    let rty = leftStartY;
-    doc.setFontSize(9);
+    const fieldY = detailsTop + 10;
+    addField("Bilty No", bilty.bilty_number, margin + 2, fieldY);
+    addField("Date", formatDate(bilty.bilty_date), margin + 2, fieldY + 5);
+
+    const rx = margin + boxW + 6;
+    let rty = fieldY;
     if (bilty.vehicle_number) {
       addField("Vehicle", bilty.vehicle_number, rx, rty);
       rty += 5;
@@ -183,24 +233,15 @@ export async function generateBiltyPDF(
     }
     if (bilty.driver_mobile) {
       addField("Mobile", bilty.driver_mobile, rx, rty);
-      rty += 5;
     }
 
-    y = Math.max(y, rty) + 2;
-
-    // Copy label – right aligned just above separator line
-    doc.setFontSize(9);
+    y = detailsTop + boxH + 2;
+    doc.setFontSize(7.5);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(120);
-    doc.text(copyLabels[copyIdx], pageWidth - 16, y, { align: "right" });
+    doc.text(copyLabels[copyIdx], pageWidth - margin, y, { align: "right" });
     doc.setTextColor(0);
-    y += 5;
-
-    // Separator
-    doc.setDrawColor(220);
-    doc.setLineWidth(0.3);
-    doc.line(16, y, pageWidth - 16, y);
-    y += 6;
+    y += 4;
 
     // ── Bill & E-way Details ──
     const billsToShow = billEntries.length > 0
@@ -210,13 +251,6 @@ export async function generateBiltyPDF(
         : [];
 
     if (billsToShow.length > 0) {
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(80);
-      doc.text("BILL & E-WAY DETAILS:", 16, y);
-      doc.setTextColor(0);
-      y += 2;
-
       autoTable(doc, {
         startY: y,
         head: [["Bill Number", "Bill Date", "E-way Bill Number"]],
@@ -225,101 +259,81 @@ export async function generateBiltyPDF(
           b.bill_date ? formatDate(b.bill_date) : "—",
           b.eway_bill_number || "—",
         ]),
-        theme: "striped",
-        headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 9, lineWidth: 0 },
-        styles: { fontSize: 9, cellPadding: 3, lineColor: [230, 230, 230], lineWidth: 0 },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        margin: { left: 16, right: 16 },
+        theme: "grid",
+        headStyles: { fillColor: [248, 250, 252], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 7.5, cellPadding: 1.5 },
+        styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [210, 210, 210], lineWidth: 0.2 },
+        margin: { left: margin, right: margin },
       });
-      y = (doc as any).lastAutoTable.finalY + 8;
-
-      doc.setDrawColor(220);
-      doc.setLineWidth(0.3);
-      doc.line(16, y - 4, pageWidth - 16, y - 4);
+      y = (doc as any).lastAutoTable.finalY + 3;
     }
 
-    // ── Consignor / Consignee two-column ──
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(80);
-    doc.text("CONSIGNOR (FROM):", 16, y);
-    doc.text("CONSIGNEE (TO):", 110, y);
-    doc.setTextColor(0);
-    y += 6;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-
-    const leftColWidth = 85;
-    const rightColWidth = 80;
-    const rightColX = 110;
+    // ── Consignor / Consignee boxes ──
+    const partyTop = y;
+    const leftColWidth = boxW - 4;
+    const rightColX = margin + boxW + 6;
 
     const consignorLines = [
       bilty.consignor_name, bilty.consignor_address,
       bilty.consignor_gstin ? `GSTIN: ${bilty.consignor_gstin}` : null,
       bilty.ship_from ? `Ship From: ${bilty.ship_from}` : null,
-    ].filter(Boolean);
+    ].filter(Boolean) as string[];
 
     const consigneeLines = [
       bilty.consignee_name, bilty.consignee_address,
       bilty.consignee_gstin ? `GSTIN: ${bilty.consignee_gstin}` : null,
       bilty.ship_to ? `Ship To: ${bilty.ship_to}` : null,
-    ].filter(Boolean);
+    ].filter(Boolean) as string[];
 
-    // Wrap each line to fit column width
     const wrappedLeft: string[] = [];
     consignorLines.forEach(line => {
-      const split = doc.splitTextToSize(line!, leftColWidth);
-      wrappedLeft.push(...split);
+      wrappedLeft.push(...doc.splitTextToSize(line, leftColWidth));
     });
-
     const wrappedRight: string[] = [];
     consigneeLines.forEach(line => {
-      const split = doc.splitTextToSize(line!, rightColWidth);
-      wrappedRight.push(...split);
+      wrappedRight.push(...doc.splitTextToSize(line, leftColWidth));
     });
 
-    const maxLines = Math.max(wrappedLeft.length, wrappedRight.length);
-    for (let i = 0; i < maxLines; i++) {
-      if (wrappedLeft[i]) doc.text(wrappedLeft[i], 16, y);
-      if (wrappedRight[i]) doc.text(wrappedRight[i], rightColX, y);
-      y += 5;
-    }
-    y += 4;
+    const partyLines = Math.min(Math.max(wrappedLeft.length, wrappedRight.length, 3), 6);
+    const partyH = 8 + partyLines * 3.5;
+    drawBox(doc, margin, partyTop, boxW, partyH);
+    drawBox(doc, margin + boxW + 4, partyTop, boxW, partyH);
 
-    // ── Goods table ──
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(80);
+    doc.text("CONSIGNOR (FROM)", margin + 2, partyTop + 5);
+    doc.text("CONSIGNEE (TO)", rightColX, partyTop + 5);
+    doc.setTextColor(0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+
+    let py = partyTop + 9;
+    for (let i = 0; i < partyLines; i++) {
+      if (wrappedLeft[i]) doc.text(wrappedLeft[i], margin + 2, py);
+      if (wrappedRight[i]) doc.text(wrappedRight[i], rightColX, py);
+      py += 3.5;
+    }
+    y = partyTop + partyH + 3;
+
+    // ── Goods table (max ~3 rows) ──
     if (items.length > 0) {
       autoTable(doc, {
         startY: y,
         head: [["#", "Description", "Qty", "Weight (kg)", "Rate", "Amount"]],
-        body: items.map((item, idx) => [
+        body: items.slice(0, 3).map((item, idx) => [
           idx + 1, item.description, item.quantity || 0, item.weight || 0,
           formatINR(item.rate || 0), formatINR(item.amount || 0),
         ]),
-        theme: "striped",
-        headStyles: { fillColor: [255, 255, 255], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 9, lineWidth: 0 },
-        styles: { fontSize: 9, cellPadding: 4, lineColor: [230, 230, 230], lineWidth: 0 },
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        columnStyles: { 0: { halign: "center", cellWidth: 12 }, 4: { halign: "right" }, 5: { halign: "right" } },
-        margin: { left: 16, right: 16 },
-        didDrawPage() {
-          doc.setDrawColor(30);
-          doc.setLineWidth(0.5);
-          doc.line(16, y + 10, pageWidth - 16, y + 10);
-        },
+        theme: "grid",
+        headStyles: { fillColor: [248, 250, 252], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 7.5, cellPadding: 1.5 },
+        styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [210, 210, 210], lineWidth: 0.2 },
+        columnStyles: { 0: { halign: "center", cellWidth: 10 }, 4: { halign: "right" }, 5: { halign: "right" } },
+        margin: { left: margin, right: margin },
       });
-      y = (doc as any).lastAutoTable.finalY + 6;
+      y = (doc as any).lastAutoTable.finalY + 3;
     }
 
-    // ── Financial Details ──
-    const finTableX = pageWidth - 106;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(80);
-    doc.text("FINANCIAL DETAILS:", finTableX, y);
-    doc.setTextColor(0);
-    y += 5;
-
+    // ── Financial Details (horizontal) ──
     const statusLabel = bilty.freight_status === "to_be_billed" ? "To Be Billed"
       : bilty.freight_status === "paid" ? "Paid"
       : bilty.freight_status === "to_pay" ? "To Pay"
@@ -328,72 +342,59 @@ export async function generateBiltyPDF(
       : (bilty as any).gst_paid_by === "consignee" ? "Consignee"
       : (bilty as any).gst_paid_by === "transporter" ? "Transporter"
       : (bilty as any).gst_paid_by || "—";
-    const balanceDue = Number(bilty.balance_due || 0);
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(80);
+    doc.text("FINANCIAL DETAILS", margin, y);
+    doc.setTextColor(0);
+    y += 3;
 
     autoTable(doc, {
       startY: y,
-      body: [
-        ["Freight Status", statusLabel],
-        ["GST Paid By", gstLabel],
-        ["Freight", formatINR(Number(bilty.freight_amount || 0))],
-        ["Loading Charges", formatINR(Number(bilty.loading_charges || 0))],
-        ["Unloading Charges", formatINR(Number(bilty.unloading_charges || 0))],
-        ["Weight Charges", formatINR(Number(bilty.weight_charges || 0))],
-        ["Other Charges", formatINR(Number(bilty.other_charges || 0))],
-        ["TOTAL", formatINR(Number(bilty.total_amount || 0))],
-        ["Advance Paid", formatINR(Number(bilty.advance_paid || 0))],
-        ["Balance Due", formatINR(balanceDue)],
-      ],
-      theme: "plain",
-      styles: { fontSize: 9, cellPadding: 2.5, lineColor: [230, 230, 230], lineWidth: 0.1 },
-      columnStyles: {
-        0: { fontStyle: "bold", cellWidth: 52 },
-        1: { halign: "right", cellWidth: 38 },
-      },
-      margin: { left: pageWidth - 106, right: 16 },
-      didParseCell(data) {
-        if (data.section !== "body") return;
-        const label = (data.row.raw as string[])[0];
-        if (label === "TOTAL" || label === "Balance Due") {
-          data.cell.styles.fontStyle = "bold";
-        }
-        if (label === "Advance Paid") {
-          data.cell.styles.textColor = [34, 139, 34];
-        }
-        if (label === "Balance Due" && balanceDue > 0) {
-          data.cell.styles.textColor = [200, 0, 0];
-        }
-      },
+      head: [["Freight Status", "GST Paid By", "Freight", "Loading", "Unloading", "Weight", "Other", "TOTAL"]],
+      body: [[
+        statusLabel,
+        gstLabel,
+        formatINR(Number(bilty.freight_amount || 0)),
+        formatINR(Number(bilty.loading_charges || 0)),
+        formatINR(Number(bilty.unloading_charges || 0)),
+        formatINR(Number(bilty.weight_charges || 0)),
+        formatINR(Number(bilty.other_charges || 0)),
+        formatINR(Number(bilty.total_amount || 0)),
+      ]],
+      theme: "grid",
+      headStyles: { fillColor: [248, 250, 252], textColor: [50, 50, 50], fontStyle: "bold", fontSize: 6.5, cellPadding: 1.5, halign: "center" },
+      styles: { fontSize: 7, cellPadding: 1.5, halign: "center", lineColor: [210, 210, 210], lineWidth: 0.2 },
+      columnStyles: { 7: { fontStyle: "bold" } },
+      margin: { left: margin, right: margin },
     });
-    y = (doc as any).lastAutoTable.finalY + 4;
+    y = (doc as any).lastAutoTable.finalY + 3;
 
-    // ── Notes ──
+    // ── Notes (compact) ──
     if (bilty.notes) {
-      doc.setFontSize(9);
+      doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
-      doc.text("NOTES:", 16, y);
+      doc.text("NOTES:", margin, y + 3);
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      const lines = doc.splitTextToSize(bilty.notes, 90);
-      doc.text(lines, 16, y + 5);
-      y += 4 + lines.length * 3.5;
+      const noteLines = doc.splitTextToSize(bilty.notes, pageWidth - margin * 2 - 16);
+      doc.text(noteLines.slice(0, 2), margin + 14, y + 3);
+      y += 3 + Math.min(noteLines.length, 2) * 3;
     }
 
-    y += 4;
-
-    // ── Terms & Conditions ──
-    y = ensurePageSpace(doc, y, 50);
+    // ── Terms & Conditions (2 columns, compact) ──
+    y += 2;
     doc.setDrawColor(180);
-    doc.setLineWidth(0.3);
-    doc.line(16, y, pageWidth - 16, y);
-    y += 5;
-
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.text("TERMS & CONDITIONS", 16, y);
+    doc.setLineWidth(0.2);
+    doc.line(margin, y, pageWidth - margin, y);
     y += 4;
 
-    doc.setFontSize(7);
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.text("TERMS & CONDITIONS", margin, y);
+    y += 3.5;
+
+    doc.setFontSize(6);
     doc.setFont("helvetica", "normal");
     const termsLines = [
       "1. Goods booked at owner's risk. Company is not responsible for any damage or loss.",
@@ -403,44 +404,32 @@ export async function generateBiltyPDF(
       "5. Delivery will be made only to the consignee or their authorized representative.",
       "6. Goods At Owner Risk.",
     ];
-    termsLines.forEach((line) => {
-      y = ensurePageSpace(doc, y, 6);
-      doc.text(line, 16, y);
-      y += 3.5;
+    const midX = pageWidth / 2;
+    termsLines.slice(0, 3).forEach((line, i) => {
+      doc.text(line, margin, y + i * 3);
     });
+    termsLines.slice(3).forEach((line, i) => {
+      doc.text(line, midX, y + i * 3);
+    });
+    y += 12;
 
-    y += 4;
+    // ── Signatures ──
+    const sigY = y + 6;
+    const sig1X = margin;
+    const sig2X = pageWidth / 2 - 22;
+    const sig3X = pageWidth - margin - 48;
 
-    // ── Signature Section ──
-    y = ensurePageSpace(doc, y, 28);
-    doc.setDrawColor(100);
-    doc.setLineWidth(0.2);
-
-    // Dashed separator line
-    const dashY = y;
-    for (let dx = 16; dx < pageWidth - 16; dx += 4) {
-      doc.line(dx, dashY, dx + 2, dashY);
-    }
-    y += 6;
-
-    const sigY = y + 8;
-    const sig1X = 16;
-    const sig2X = pageWidth / 2 - 20;
-    const sig3X = pageWidth - 60;
-
-    // Signature lines
-    doc.setLineWidth(0.3);
     doc.setDrawColor(0);
-    doc.line(sig1X, sigY, sig1X + 45, sigY);
-    doc.line(sig2X, sigY, sig2X + 45, sigY);
-    doc.line(sig3X, sigY, sig3X + 45, sigY);
+    doc.setLineWidth(0.25);
+    doc.line(sig1X, sigY, sig1X + 42, sigY);
+    doc.line(sig2X, sigY, sig2X + 42, sigY);
+    doc.line(sig3X, sigY, sig3X + 42, sigY);
 
-    // Signature labels
-    doc.setFontSize(7);
+    doc.setFontSize(6);
     doc.setFont("helvetica", "bold");
-    doc.text("CONSIGNOR SIGNATURE", sig1X, sigY + 5);
-    doc.text("DRIVER SIGNATURE", sig2X, sigY + 5);
-    doc.text(`FOR ${(settings.company_name || "COMPANY").toUpperCase()}`, sig3X, sigY + 5);
+    doc.text("CONSIGNOR SIGNATURE", sig1X, sigY + 4);
+    doc.text("DRIVER SIGNATURE", sig2X, sigY + 4);
+    doc.text(`FOR ${(settings.company_name || "COMPANY").toUpperCase()}`, sig3X, sigY + 4);
   }
 
   addFooter(doc, settings);
