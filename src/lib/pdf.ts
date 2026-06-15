@@ -97,6 +97,16 @@ async function addDarkHeader(
   return 65;
 }
 
+/* ─── Page space helper ─── */
+function ensurePageSpace(doc: jsPDF, y: number, needed: number): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  if (y + needed > pageHeight - 22) {
+    doc.addPage();
+    return 20;
+  }
+  return y;
+}
+
 /* ─── Footer ─── */
 function addFooter(doc: jsPDF, settings: CompanySettings) {
   const pageCount = doc.getNumberOfPages();
@@ -275,7 +285,7 @@ export async function generateBiltyPDF(
       if (wrappedRight[i]) doc.text(wrappedRight[i], rightColX, y);
       y += 5;
     }
-    y += 6;
+    y += 4;
 
     // ── Goods table ──
     if (items.length > 0) {
@@ -298,82 +308,64 @@ export async function generateBiltyPDF(
           doc.line(16, y + 10, pageWidth - 16, y + 10);
         },
       });
-      y = (doc as any).lastAutoTable.finalY + 12;
+      y = (doc as any).lastAutoTable.finalY + 6;
     }
 
-    // ── Financial Details (matches create/edit form) ──
+    // ── Financial Details ──
+    const finTableX = pageWidth - 106;
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(80);
-    doc.text("FINANCIAL DETAILS:", 16, y);
+    doc.text("FINANCIAL DETAILS:", finTableX, y);
     doc.setTextColor(0);
-    y += 7;
+    y += 5;
 
-    doc.setFontSize(9);
-    if (bilty.freight_status) {
-      const statusLabel = bilty.freight_status === "to_be_billed" ? "To Be Billed"
-        : bilty.freight_status === "paid" ? "Paid"
-        : bilty.freight_status === "to_pay" ? "To Pay" : bilty.freight_status;
-      addField("Freight Status", statusLabel, 16, y);
-      y += 5;
-    }
-    if ((bilty as any).gst_paid_by) {
-      const gstLabel = (bilty as any).gst_paid_by === "consignor" ? "Consignor"
-        : (bilty as any).gst_paid_by === "consignee" ? "Consignee"
-        : (bilty as any).gst_paid_by === "transporter" ? "Transporter" : (bilty as any).gst_paid_by;
-      addField("GST Paid By", gstLabel, 16, y);
-      y += 5;
-    }
-    y += 2;
+    const statusLabel = bilty.freight_status === "to_be_billed" ? "To Be Billed"
+      : bilty.freight_status === "paid" ? "Paid"
+      : bilty.freight_status === "to_pay" ? "To Pay"
+      : bilty.freight_status || "—";
+    const gstLabel = (bilty as any).gst_paid_by === "consignor" ? "Consignor"
+      : (bilty as any).gst_paid_by === "consignee" ? "Consignee"
+      : (bilty as any).gst_paid_by === "transporter" ? "Transporter"
+      : (bilty as any).gst_paid_by || "—";
+    const balanceDue = Number(bilty.balance_due || 0);
 
-    const sumX = 120;
-    const valX = 190;
-    doc.setFontSize(10);
-
-    const addSumLine = (label: string, val: number, bold = false) => {
-      if (!val && !bold) return;
-      doc.setFont("helvetica", bold ? "bold" : "normal");
-      doc.text(label, sumX, y);
-      doc.text(formatINR(val || 0), valX, y, { align: "right" });
-      y += 6;
-    };
-
-    addSumLine("Freight", bilty.freight_amount);
-    addSumLine("Loading Charges", bilty.loading_charges);
-    addSumLine("Unloading Charges", bilty.unloading_charges);
-    addSumLine("Weight Charges", bilty.weight_charges);
-    addSumLine("Other Charges", bilty.other_charges);
-
-    // TOTAL and everything below starts on a new page
-    doc.addPage();
-    y = 20;
-
-    // Separator before total
-    doc.setDrawColor(200);
-    doc.line(sumX, y - 2, valX, y - 2);
-    y += 3;
-
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("TOTAL", sumX, y);
-    doc.text(formatINR(bilty.total_amount || 0), valX, y, { align: "right" });
-    y += 8;
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Advance Paid", sumX, y);
-    doc.setTextColor(34, 139, 34);
-    doc.text(formatINR(bilty.advance_paid || 0), valX, y, { align: "right" });
-    doc.setTextColor(0);
-    y += 6;
-
-    doc.setFont("helvetica", "bold");
-    doc.text("Balance Due", sumX, y);
-    const bal = Number(bilty.balance_due || 0);
-    if (bal > 0) doc.setTextColor(200, 0, 0);
-    doc.text(formatINR(bal), valX, y, { align: "right" });
-    doc.setTextColor(0);
-    y += 10;
+    autoTable(doc, {
+      startY: y,
+      body: [
+        ["Freight Status", statusLabel],
+        ["GST Paid By", gstLabel],
+        ["Freight", formatINR(Number(bilty.freight_amount || 0))],
+        ["Loading Charges", formatINR(Number(bilty.loading_charges || 0))],
+        ["Unloading Charges", formatINR(Number(bilty.unloading_charges || 0))],
+        ["Weight Charges", formatINR(Number(bilty.weight_charges || 0))],
+        ["Other Charges", formatINR(Number(bilty.other_charges || 0))],
+        ["TOTAL", formatINR(Number(bilty.total_amount || 0))],
+        ["Advance Paid", formatINR(Number(bilty.advance_paid || 0))],
+        ["Balance Due", formatINR(balanceDue)],
+      ],
+      theme: "plain",
+      styles: { fontSize: 9, cellPadding: 2.5, lineColor: [230, 230, 230], lineWidth: 0.1 },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 52 },
+        1: { halign: "right", cellWidth: 38 },
+      },
+      margin: { left: pageWidth - 106, right: 16 },
+      didParseCell(data) {
+        if (data.section !== "body") return;
+        const label = (data.row.raw as string[])[0];
+        if (label === "TOTAL" || label === "Balance Due") {
+          data.cell.styles.fontStyle = "bold";
+        }
+        if (label === "Advance Paid") {
+          data.cell.styles.textColor = [34, 139, 34];
+        }
+        if (label === "Balance Due" && balanceDue > 0) {
+          data.cell.styles.textColor = [200, 0, 0];
+        }
+      },
+    });
+    y = (doc as any).lastAutoTable.finalY + 4;
 
     // ── Notes ──
     if (bilty.notes) {
@@ -384,21 +376,22 @@ export async function generateBiltyPDF(
       doc.setFontSize(8);
       const lines = doc.splitTextToSize(bilty.notes, 90);
       doc.text(lines, 16, y + 5);
-      y += 5 + lines.length * 4;
+      y += 4 + lines.length * 3.5;
     }
 
-    y += 6;
+    y += 4;
 
     // ── Terms & Conditions ──
+    y = ensurePageSpace(doc, y, 50);
     doc.setDrawColor(180);
     doc.setLineWidth(0.3);
     doc.line(16, y, pageWidth - 16, y);
-    y += 6;
+    y += 5;
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.text("TERMS & CONDITIONS", 16, y);
-    y += 5;
+    y += 4;
 
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
@@ -411,18 +404,15 @@ export async function generateBiltyPDF(
       "6. Goods At Owner Risk.",
     ];
     termsLines.forEach((line) => {
-      // Check page overflow
-      if (y > doc.internal.pageSize.getHeight() - 30) {
-        doc.addPage();
-        y = 20;
-      }
+      y = ensurePageSpace(doc, y, 6);
       doc.text(line, 16, y);
-      y += 4;
+      y += 3.5;
     });
 
     y += 4;
 
     // ── Signature Section ──
+    y = ensurePageSpace(doc, y, 28);
     doc.setDrawColor(100);
     doc.setLineWidth(0.2);
 
@@ -431,15 +421,9 @@ export async function generateBiltyPDF(
     for (let dx = 16; dx < pageWidth - 16; dx += 4) {
       doc.line(dx, dashY, dx + 2, dashY);
     }
-    y += 8;
+    y += 6;
 
-    // Check if we need a new page for signatures
-    if (y > doc.internal.pageSize.getHeight() - 25) {
-      doc.addPage();
-      y = 20;
-    }
-
-    const sigY = y + 12;
+    const sigY = y + 8;
     const sig1X = 16;
     const sig2X = pageWidth / 2 - 20;
     const sig3X = pageWidth - 60;
