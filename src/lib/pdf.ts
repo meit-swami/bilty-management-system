@@ -105,7 +105,7 @@ function addFooter(doc: jsPDF, settings: CompanySettings) {
     doc.setFontSize(7);
     doc.setTextColor(150);
     doc.text(
-      `© ${new Date().getFullYear()} ${settings.company_name || "Setu Go"} · Developed by BRANDZAHA CREATIVE AGENCY`,
+      `© ${new Date().getFullYear()} ${settings.company_name || "Setu Go"}`,
       105, 288, { align: "center" }
     );
     doc.text(`Page ${i} of ${pageCount}`, 196, 288, { align: "right" });
@@ -130,13 +130,6 @@ export async function generateBiltyPDF(
 
     let y = await addDarkHeader(doc, settings, "Bilty");
     const pageWidth = doc.internal.pageSize.getWidth();
-
-    // ── Copy Label ──
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(120);
-    doc.text(copyLabels[copyIdx], pageWidth - 16, y - 2, { align: "right" });
-    doc.setTextColor(0);
 
     // ── Two-column: Bilty Details (left) | Transport Details (right) ──
     doc.setFontSize(10);
@@ -183,7 +176,15 @@ export async function generateBiltyPDF(
       rty += 5;
     }
 
-    y = Math.max(y, rty) + 4;
+    y = Math.max(y, rty) + 2;
+
+    // Copy label – right aligned just above separator line
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(120);
+    doc.text(copyLabels[copyIdx], pageWidth - 16, y, { align: "right" });
+    doc.setTextColor(0);
+    y += 5;
 
     // Separator
     doc.setDrawColor(220);
