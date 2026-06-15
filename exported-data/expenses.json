@@ -1,0 +1,13 @@
+[
+  {
+    "id": "7645b9cd-b5fc-4e8e-bea1-4a9515fe6543",
+    "expense_date": "2026-02-16",
+    "category": "Toll",
+    "amount": 250,
+    "description": "",
+    "vehicle_id": null,
+    "notes": "",
+    "created_at": "2026-02-16T08:27:27.925088+00:00",
+    "updated_at": "2026-02-16T08:27:27.925088+00:00"
+  }
+]

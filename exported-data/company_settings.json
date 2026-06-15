@@ -1,0 +1,21 @@
+[
+  {
+    "id": "9320408a-161d-4ef3-9348-a2efb13274b3",
+    "company_name": "AMRITA TRANSPORT COMPANY",
+    "address": "PLOT NO. 83 , MOTI NAGAR, NINDAR MODE,Harmada, Jaipur,302013",
+    "phone": "7737573171",
+    "email": "rkrawat23177@gmail.com",
+    "gstin": "08EGPPK9352C1Z1",
+    "state_code": "08",
+    "invoice_prefix": "INOICE",
+    "bilty_prefix": "bilty",
+    "financial_year_start": null,
+    "next_bilty_number": 2200,
+    "next_invoice_number": 2,
+    "created_at": "2026-02-10T11:55:39.184985+00:00",
+    "updated_at": "2026-06-04T12:06:08.271522+00:00",
+    "logo_light_url": "https://tyoeyuowumkxrqoewkkw.supabase.co/storage/v1/object/public/company-assets/logo_light_1773384320642.jfif",
+    "logo_dark_url": "https://tyoeyuowumkxrqoewkkw.supabase.co/storage/v1/object/public/company-assets/logo_dark_1770975797102.png",
+    "favicon_url": "https://tyoeyuowumkxrqoewkkw.supabase.co/storage/v1/object/public/company-assets/favicon_1770975801422.png"
+  }
+]

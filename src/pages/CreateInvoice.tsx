@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabase-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,17 +83,19 @@ export default function CreateInvoice() {
     queryFn: async () => {
       const editBiltyIds = existingInvItems.map((i) => i.bilty_id);
       
-      let query = supabase.from("bilties").select("*").order("bilty_date", { ascending: false });
+      const allData = await fetchAllRows("bilties", {
+        order: { column: "bilty_date", ascending: false },
+        filters: (query: any) => {
+          if (editBiltyIds.length > 0) {
+            query = query.or(`status.eq.unbilled,id.in.(${editBiltyIds.join(",")})`);
+          } else {
+            query = query.eq("status", "unbilled");
+          }
+          return query;
+        },
+      });
       
-      if (editBiltyIds.length > 0) {
-        // Show unbilled + bilties belonging to this invoice
-        query = query.or(`status.eq.unbilled,id.in.(${editBiltyIds.join(",")})`);
-      } else {
-        query = query.eq("status", "unbilled");
-      }
-      
-      const { data } = await query;
-      let result = data || [];
+      let result = allData;
       
       // Filter by party if selected (match consignor or consignee name)
       if (partyId) {

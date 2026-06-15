@@ -1,0 +1,1226 @@
+[
+  {
+    "id": "f90db43f-e704-45d2-9809-ca9f60a1ad93",
+    "vehicle_number": "HR39E7693",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-21T11:32:12.62833+00:00",
+    "updated_at": "2026-04-21T11:32:12.62833+00:00"
+  },
+  {
+    "id": "e1d88333-ff44-4ca7-a5c4-03934acf7e23",
+    "vehicle_number": "RJ14CR5345",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-03-13T06:27:16.323157+00:00",
+    "updated_at": "2026-03-13T06:27:16.323157+00:00"
+  },
+  {
+    "id": "8ab73ae0-376d-495f-90bc-a0f913b1f955",
+    "vehicle_number": "RJ14LC0420",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-03-13T06:33:21.149089+00:00",
+    "updated_at": "2026-03-13T06:33:21.149089+00:00"
+  },
+  {
+    "id": "ffd35e01-dab9-4b7d-90bf-ac9831378e8d",
+    "vehicle_number": "RJ14GN0398",
+    "vehicle_type": "",
+    "owner_name": "",
+    "is_active": true,
+    "created_at": "2026-02-12T08:45:30.347442+00:00",
+    "updated_at": "2026-03-13T06:38:23.157764+00:00"
+  },
+  {
+    "id": "b77971f9-5e27-4f4c-94db-097018fd6966",
+    "vehicle_number": "RJ14GE8216",
+    "vehicle_type": null,
+    "owner_name": "KARTAR",
+    "is_active": true,
+    "created_at": "2026-03-27T08:57:51.925418+00:00",
+    "updated_at": "2026-03-27T08:57:51.925418+00:00"
+  },
+  {
+    "id": "22bafd39-9b51-4fee-b760-85ea80340840",
+    "vehicle_number": "RJ23EA1695",
+    "vehicle_type": "LIFTER",
+    "owner_name": "SANKER",
+    "is_active": true,
+    "created_at": "2026-03-27T10:42:01.627934+00:00",
+    "updated_at": "2026-03-27T10:42:01.627934+00:00"
+  },
+  {
+    "id": "9d95aff7-0b99-4e57-b980-227cd8d789d3",
+    "vehicle_number": "RJ41GA3737",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-03-27T11:40:58.366945+00:00",
+    "updated_at": "2026-03-27T11:40:58.366945+00:00"
+  },
+  {
+    "id": "61e5a732-c66b-4155-ba56-45ead994ef4c",
+    "vehicle_number": "RJ40GA0350",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-03-28T05:28:13.536521+00:00",
+    "updated_at": "2026-03-28T05:28:13.536521+00:00"
+  },
+  {
+    "id": "812e069b-c642-4a97-b0eb-a1e6ae9b3bd9",
+    "vehicle_number": "RJ14GG3819",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-03-28T06:47:17.902011+00:00",
+    "updated_at": "2026-03-28T06:47:17.902011+00:00"
+  },
+  {
+    "id": "dccc5bf3-6f01-4c83-99f5-5b3298bad6f0",
+    "vehicle_number": "RJ41GA2292",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-03-28T10:29:54.498503+00:00",
+    "updated_at": "2026-03-28T10:29:54.498503+00:00"
+  },
+  {
+    "id": "2265bd7d-72f4-48a2-aae7-03be322d7729",
+    "vehicle_number": "RJ23GC9265",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-03-30T07:29:16.990583+00:00",
+    "updated_at": "2026-03-30T07:29:16.990583+00:00"
+  },
+  {
+    "id": "9ee843ae-2361-4ad1-b8b1-e66616feb92a",
+    "vehicle_number": "RJ14GL0693",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-03-30T08:22:47.266423+00:00",
+    "updated_at": "2026-03-30T08:22:47.266423+00:00"
+  },
+  {
+    "id": "71850807-6883-47ae-b2fe-04f6f023a799",
+    "vehicle_number": "RJ14GP7033",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-01T06:34:04.741557+00:00",
+    "updated_at": "2026-04-01T06:34:04.741557+00:00"
+  },
+  {
+    "id": "fcdee70d-1ae2-4c26-abee-e2ef08753212",
+    "vehicle_number": "RJ14GG9574",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-01T07:19:04.481135+00:00",
+    "updated_at": "2026-04-01T07:19:04.481135+00:00"
+  },
+  {
+    "id": "6ae98f1f-0072-40fa-a391-c8b89de487eb",
+    "vehicle_number": "RJ41 GA 3737",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-01T08:46:59.526524+00:00",
+    "updated_at": "2026-04-01T08:46:59.526524+00:00"
+  },
+  {
+    "id": "97401351-9785-4af0-b401-560f9fe9ccf2",
+    "vehicle_number": "RJ14GT6261",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-01T10:01:39.117245+00:00",
+    "updated_at": "2026-04-01T10:01:39.117245+00:00"
+  },
+  {
+    "id": "efc19f5c-9940-46ec-8997-921364026c07",
+    "vehicle_number": "HR55AM3422",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-22T04:24:21.187075+00:00",
+    "updated_at": "2026-04-22T04:24:21.187075+00:00"
+  },
+  {
+    "id": "e07c17bc-898a-4ac0-9d6c-6e431d04baec",
+    "vehicle_number": "HR55AK1782",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-22T04:33:24.82688+00:00",
+    "updated_at": "2026-04-22T04:33:24.82688+00:00"
+  },
+  {
+    "id": "b1268e6e-fba6-4064-ab64-f985618a2a65",
+    "vehicle_number": "RJ 14GU 7247",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-23T05:00:01.34053+00:00",
+    "updated_at": "2026-04-23T05:00:01.34053+00:00"
+  },
+  {
+    "id": "cf9d4e17-1d3a-463b-8489-19d860189bba",
+    "vehicle_number": "RJ41GA3723",
+    "vehicle_type": "",
+    "owner_name": "CHITTAR MAL ",
+    "is_active": true,
+    "created_at": "2026-04-02T04:43:23.639744+00:00",
+    "updated_at": "2026-04-02T05:25:03.388444+00:00"
+  },
+  {
+    "id": "f589451e-6a51-4e52-9c52-47f63d87b3fd",
+    "vehicle_number": "RJ21GD5464",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-02T05:55:42.640108+00:00",
+    "updated_at": "2026-04-02T05:55:42.640108+00:00"
+  },
+  {
+    "id": "15abd24d-e395-4d1f-9c86-5fc1b7664dc5",
+    "vehicle_number": "RJ23GC0791",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-02T12:13:36.865067+00:00",
+    "updated_at": "2026-04-02T12:13:36.865067+00:00"
+  },
+  {
+    "id": "f0f81bd4-7e4a-4b95-8701-5c10d0249c1e",
+    "vehicle_number": "HR55AK3848",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-04T10:36:45.98628+00:00",
+    "updated_at": "2026-04-04T10:36:45.98628+00:00"
+  },
+  {
+    "id": "f2cb3541-1067-4675-b290-f3efa62a40cb",
+    "vehicle_number": "RJ23GB5840",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-04T12:28:27.359636+00:00",
+    "updated_at": "2026-04-04T12:28:27.359636+00:00"
+  },
+  {
+    "id": "dda41ee9-f5f6-4f6c-bdba-10df0d26d464",
+    "vehicle_number": "RJ26GA7533",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-05T04:42:06.634886+00:00",
+    "updated_at": "2026-04-05T04:42:06.634886+00:00"
+  },
+  {
+    "id": "4f1573f2-517a-4be1-8fd8-f92bc97041b8",
+    "vehicle_number": "RJ44GA2118",
+    "vehicle_type": "TATA",
+    "owner_name": "LALA",
+    "is_active": true,
+    "created_at": "2026-04-06T06:20:52.552141+00:00",
+    "updated_at": "2026-04-06T06:20:52.552141+00:00"
+  },
+  {
+    "id": "7014b30e-bcea-4063-a070-b0fe267a35da",
+    "vehicle_number": "RJ23EA3115",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-06T09:05:39.56496+00:00",
+    "updated_at": "2026-04-06T09:05:39.56496+00:00"
+  },
+  {
+    "id": "3333a4db-eadb-409d-b76e-a3398fb8ed27",
+    "vehicle_number": "HR38AB4615",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-06T10:45:08.913794+00:00",
+    "updated_at": "2026-04-06T10:45:08.913794+00:00"
+  },
+  {
+    "id": "831abf75-3e77-4691-879a-0a1f8d4e48bb",
+    "vehicle_number": "RJ14GN1461",
+    "vehicle_type": "TATA MAZIC",
+    "owner_name": "MANGILAL JI",
+    "is_active": true,
+    "created_at": "2026-04-07T04:53:14.333208+00:00",
+    "updated_at": "2026-04-07T04:53:14.333208+00:00"
+  },
+  {
+    "id": "8e64b1ed-10c3-4b57-886d-1cf2f4e168bb",
+    "vehicle_number": "RJ09GD5755",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-07T04:57:25.420286+00:00",
+    "updated_at": "2026-04-07T04:57:25.420286+00:00"
+  },
+  {
+    "id": "e4d40c25-900c-433a-88f8-afc92ab67d67",
+    "vehicle_number": "RJ14GJ5191",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-07T05:11:42.078271+00:00",
+    "updated_at": "2026-04-07T05:11:42.078271+00:00"
+  },
+  {
+    "id": "b9c17a12-2a85-4389-9b60-bfb65c5a5a27",
+    "vehicle_number": "DL01GE2335",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-09T07:36:30.916307+00:00",
+    "updated_at": "2026-04-09T07:36:30.916307+00:00"
+  },
+  {
+    "id": "e73a273b-0ddf-4979-b1fe-6a1fddb9fd8a",
+    "vehicle_number": "HP69A8249",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-09T10:25:52.050618+00:00",
+    "updated_at": "2026-04-09T10:25:52.050618+00:00"
+  },
+  {
+    "id": "9408a922-b387-459a-ac0b-6aad3fc54d58",
+    "vehicle_number": "RJ14GU4967",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-09T11:37:11.29063+00:00",
+    "updated_at": "2026-04-09T11:37:11.29063+00:00"
+  },
+  {
+    "id": "f14bfada-daab-4f57-a3b0-f1059f6a4a98",
+    "vehicle_number": "RJ41GA2453",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-09T12:08:31.468548+00:00",
+    "updated_at": "2026-04-09T12:08:31.468548+00:00"
+  },
+  {
+    "id": "982020a7-f6b6-4a16-add0-026454dd0b16",
+    "vehicle_number": "RJ14GQ4964",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-10T13:25:10.197006+00:00",
+    "updated_at": "2026-04-10T13:25:10.197006+00:00"
+  },
+  {
+    "id": "ec1592f8-d683-4d2b-830d-620ef9ec2b2b",
+    "vehicle_number": "DL01GE1499",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-11T07:02:28.575733+00:00",
+    "updated_at": "2026-04-11T07:02:28.575733+00:00"
+  },
+  {
+    "id": "2a74ac76-dd73-4dee-8753-981831b49759",
+    "vehicle_number": "HR47G3486",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-11T07:33:26.274275+00:00",
+    "updated_at": "2026-04-11T07:33:26.274275+00:00"
+  },
+  {
+    "id": "92e97409-6abd-4c3a-835c-626029399919",
+    "vehicle_number": "RJ14GQ4963",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-11T13:13:15.661311+00:00",
+    "updated_at": "2026-04-11T13:13:15.661311+00:00"
+  },
+  {
+    "id": "582f9403-cc9a-450e-ad02-0bfe6f5296aa",
+    "vehicle_number": "RJ14GJ4506",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-11T13:26:14.442555+00:00",
+    "updated_at": "2026-04-11T13:26:14.442555+00:00"
+  },
+  {
+    "id": "9353345f-a227-45d8-8ae2-f45ba2e4b12c",
+    "vehicle_number": "HR38AF7903",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-12T05:16:16.309694+00:00",
+    "updated_at": "2026-04-12T05:16:16.309694+00:00"
+  },
+  {
+    "id": "8d773955-cb95-45da-be5b-859684bf540c",
+    "vehicle_number": "RJ27GD7179",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-12T10:13:19.223728+00:00",
+    "updated_at": "2026-04-12T10:13:19.223728+00:00"
+  },
+  {
+    "id": "e4ed4b8d-99a6-4e3c-8842-6517ba54b971",
+    "vehicle_number": "RJ 14 GE 3145",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-14T05:53:48.031798+00:00",
+    "updated_at": "2026-04-14T05:53:48.031798+00:00"
+  },
+  {
+    "id": "83596a08-ed67-4ebf-8c1b-8b07bca48184",
+    "vehicle_number": "HR38AB9233",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-14T11:39:43.885177+00:00",
+    "updated_at": "2026-04-14T11:39:43.885177+00:00"
+  },
+  {
+    "id": "3a092e86-887e-4dfd-b803-5e2456d3027c",
+    "vehicle_number": "ARJUN JI",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-15T10:07:15.056688+00:00",
+    "updated_at": "2026-04-15T10:07:15.056688+00:00"
+  },
+  {
+    "id": "11a67736-bad8-432a-86db-8076a483fdd3",
+    "vehicle_number": "RJ23GC2906",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-15T10:34:38.822779+00:00",
+    "updated_at": "2026-04-15T10:34:38.822779+00:00"
+  },
+  {
+    "id": "1d954727-cd35-49c8-b0fb-2bb7c71f795b",
+    "vehicle_number": "RJ23GC 2906",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-15T11:23:16.818517+00:00",
+    "updated_at": "2026-04-15T11:23:16.818517+00:00"
+  },
+  {
+    "id": "3b28fbfb-9886-4805-9a44-61edd99ee1e2",
+    "vehicle_number": "HP93A3372",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-15T12:55:21.5985+00:00",
+    "updated_at": "2026-04-15T12:55:21.5985+00:00"
+  },
+  {
+    "id": "0b975dc0-0e32-430b-8e2e-6e7e8fdc3bbd",
+    "vehicle_number": "RJ18GC8369",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-16T05:07:16.376379+00:00",
+    "updated_at": "2026-04-16T05:07:16.376379+00:00"
+  },
+  {
+    "id": "745d014b-6841-4ce4-8b30-b94af3c256cf",
+    "vehicle_number": "RJ14GU4966",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-16T11:14:07.13662+00:00",
+    "updated_at": "2026-04-16T11:14:07.13662+00:00"
+  },
+  {
+    "id": "537f329f-af53-4f51-ba0e-24fe448c4f37",
+    "vehicle_number": "RJ41GA3952",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-17T09:39:09.722953+00:00",
+    "updated_at": "2026-04-17T09:39:09.722953+00:00"
+  },
+  {
+    "id": "63b86a44-8e71-4ea2-9eb7-ff4daabcd4b8",
+    "vehicle_number": "RJ32GE1592",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-17T12:55:02.122154+00:00",
+    "updated_at": "2026-04-17T12:55:02.122154+00:00"
+  },
+  {
+    "id": "2e24c0aa-5977-4af4-ac46-c01773ec7a03",
+    "vehicle_number": "RJ40GA4269",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-18T05:56:04.655531+00:00",
+    "updated_at": "2026-04-18T05:56:04.655531+00:00"
+  },
+  {
+    "id": "bfff9ae1-aeb7-46d3-b58a-d708bb84cb7a",
+    "vehicle_number": "HR47D9946",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-18T06:20:36.426432+00:00",
+    "updated_at": "2026-04-18T06:20:36.426432+00:00"
+  },
+  {
+    "id": "9700a055-817e-4951-a5e6-4ac04c18e274",
+    "vehicle_number": "RJ32GB3300",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-18T11:01:53.975853+00:00",
+    "updated_at": "2026-04-18T11:01:53.975853+00:00"
+  },
+  {
+    "id": "485b2d7c-9640-4ac4-a27c-69b50447f75f",
+    "vehicle_number": "DL01GE2653",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-18T11:31:26.492772+00:00",
+    "updated_at": "2026-04-18T11:31:26.492772+00:00"
+  },
+  {
+    "id": "5e6c7586-52b3-490a-8e6a-f08663c3ff44",
+    "vehicle_number": "JH10CV8921",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-18T13:55:51.27846+00:00",
+    "updated_at": "2026-04-18T13:55:51.27846+00:00"
+  },
+  {
+    "id": "68ce4403-8e6a-4905-a79e-9c760ebe73e9",
+    "vehicle_number": "RJ14GT5601",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-19T04:19:11.160813+00:00",
+    "updated_at": "2026-04-19T04:19:11.160813+00:00"
+  },
+  {
+    "id": "a26760fb-a81f-45fc-928e-e9c48f0df126",
+    "vehicle_number": "RJ14GV0717",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-19T06:11:11.327194+00:00",
+    "updated_at": "2026-04-19T06:11:11.327194+00:00"
+  },
+  {
+    "id": "c3bf59cf-8c72-445b-9353-26b771fcd43b",
+    "vehicle_number": "RJ19GK0135",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-19T10:50:44.647631+00:00",
+    "updated_at": "2026-04-19T10:50:44.647631+00:00"
+  },
+  {
+    "id": "818721cf-86a8-4cb2-b421-972574669fdc",
+    "vehicle_number": "RJ14GU4965",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-20T13:26:08.641051+00:00",
+    "updated_at": "2026-04-20T13:26:08.641051+00:00"
+  },
+  {
+    "id": "56d38cf3-1f6d-438e-8200-162d85f344b9",
+    "vehicle_number": "RJ14GN7112",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-21T04:28:32.548195+00:00",
+    "updated_at": "2026-04-21T04:28:32.548195+00:00"
+  },
+  {
+    "id": "1aac6340-e9f7-43e9-9477-89bbfcd2f822",
+    "vehicle_number": "RJ52GB0676",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-21T05:52:36.401512+00:00",
+    "updated_at": "2026-04-21T05:52:36.401512+00:00"
+  },
+  {
+    "id": "2ea4d7da-1cf8-4fd5-8bb8-904c2dd02c62",
+    "vehicle_number": "RJ 52 GB 0676",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-21T05:59:38.773168+00:00",
+    "updated_at": "2026-04-21T05:59:38.773168+00:00"
+  },
+  {
+    "id": "e30aa797-b792-428c-8754-fcb11bbb4c95",
+    "vehicle_number": "HP 64 8175",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-21T08:43:26.472574+00:00",
+    "updated_at": "2026-04-21T08:43:26.472574+00:00"
+  },
+  {
+    "id": "60476f2d-05a2-434b-88ce-88eedb45e8be",
+    "vehicle_number": "UP14NT6426",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-21T09:41:30.844739+00:00",
+    "updated_at": "2026-04-21T09:41:30.844739+00:00"
+  },
+  {
+    "id": "ecaf89fb-0172-4e77-ae84-a044bd972c58",
+    "vehicle_number": "RJ14GK3640",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-23T07:05:43.045974+00:00",
+    "updated_at": "2026-04-23T07:05:43.045974+00:00"
+  },
+  {
+    "id": "f0add496-52a4-4b11-b4c6-59ed801ab655",
+    "vehicle_number": "HP648175",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-23T11:22:52.618827+00:00",
+    "updated_at": "2026-04-23T11:22:52.618827+00:00"
+  },
+  {
+    "id": "4e99c32f-36d3-4efa-b6be-779e2f16b6d5",
+    "vehicle_number": "RJ52GB0526",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-23T13:54:18.262878+00:00",
+    "updated_at": "2026-04-23T13:54:18.262878+00:00"
+  },
+  {
+    "id": "d0e221f8-bd7e-4a61-9a47-3803c7052d41",
+    "vehicle_number": "DL01GE4961",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-24T06:40:59.213171+00:00",
+    "updated_at": "2026-04-24T06:40:59.213171+00:00"
+  },
+  {
+    "id": "7b94452e-a02f-4875-89d5-77588b850604",
+    "vehicle_number": "HR47F4118",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-24T08:39:12.487423+00:00",
+    "updated_at": "2026-04-24T08:39:12.487423+00:00"
+  },
+  {
+    "id": "f471201d-fc55-40ef-9e50-e24395d80a4a",
+    "vehicle_number": "RJ14GD8223",
+    "vehicle_type": "RJ14GD8823",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-24T13:10:33.615596+00:00",
+    "updated_at": "2026-04-24T13:10:33.615596+00:00"
+  },
+  {
+    "id": "e082319c-0d39-4384-92c9-2f6c47fbf426",
+    "vehicle_number": "RJ14GQ6505",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-25T06:12:20.89592+00:00",
+    "updated_at": "2026-04-25T06:12:20.89592+00:00"
+  },
+  {
+    "id": "90ed3a15-c08d-473b-a6d2-adb783c04a75",
+    "vehicle_number": "RJ 29GA 4605",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-25T07:08:20.093961+00:00",
+    "updated_at": "2026-04-25T07:08:20.093961+00:00"
+  },
+  {
+    "id": "ea0ff57f-05b9-4e95-ac34-726dc5580e31",
+    "vehicle_number": "HR63D3542",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-25T08:44:58.509297+00:00",
+    "updated_at": "2026-04-25T08:44:58.509297+00:00"
+  },
+  {
+    "id": "e89e81bf-9c55-48a7-ae72-9aae3d5ec887",
+    "vehicle_number": "RJ14GT6511",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-25T11:51:03.880447+00:00",
+    "updated_at": "2026-04-25T11:51:03.880447+00:00"
+  },
+  {
+    "id": "caddc25f-7958-4088-b654-5fbfd9b8b547",
+    "vehicle_number": "RJ41GA8724",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-27T04:55:31.513678+00:00",
+    "updated_at": "2026-04-27T04:55:31.513678+00:00"
+  },
+  {
+    "id": "551b9f99-102f-40c7-b0f4-30e364dbbf69",
+    "vehicle_number": "BR01GG8510",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-28T08:48:21.817378+00:00",
+    "updated_at": "2026-04-28T08:48:21.817378+00:00"
+  },
+  {
+    "id": "e363f976-b567-4960-8dec-890fa2fe19bd",
+    "vehicle_number": "HR55AK4982",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-28T10:33:00.318496+00:00",
+    "updated_at": "2026-04-28T10:33:00.318496+00:00"
+  },
+  {
+    "id": "9f4771f8-5516-4078-aefe-15011f02f66e",
+    "vehicle_number": "RJ14GJ1169",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-28T14:06:57.16977+00:00",
+    "updated_at": "2026-04-28T14:06:57.16977+00:00"
+  },
+  {
+    "id": "9efc91e9-7c59-4a77-870e-a3f03e9b90cd",
+    "vehicle_number": "RJ14GQ4960",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-30T04:39:47.619064+00:00",
+    "updated_at": "2026-04-30T04:39:47.619064+00:00"
+  },
+  {
+    "id": "a628c0f5-0f4f-4ace-b107-899a6b425cf7",
+    "vehicle_number": "RJ 32 GD 6486",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-30T06:13:45.370037+00:00",
+    "updated_at": "2026-04-30T06:13:45.370037+00:00"
+  },
+  {
+    "id": "eea1e0e1-727c-445f-a0bf-198afdd510ee",
+    "vehicle_number": "RJ 14 GU  7247",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-30T06:37:25.579639+00:00",
+    "updated_at": "2026-04-30T06:37:25.579639+00:00"
+  },
+  {
+    "id": "b39ff93b-3cbf-442a-a405-1157c8b1c0a2",
+    "vehicle_number": "RJ29GA4454",
+    "vehicle_type": "RJ29GA4454",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-30T16:04:47.856947+00:00",
+    "updated_at": "2026-04-30T16:04:47.856947+00:00"
+  },
+  {
+    "id": "f7b2041f-3bf7-48a2-a28c-786c9c4a4ad8",
+    "vehicle_number": "RJ38AB4409",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-04-30T17:56:48.876352+00:00",
+    "updated_at": "2026-04-30T17:56:48.876352+00:00"
+  },
+  {
+    "id": "114d4c39-a9b3-447a-979f-5c6d82b8da0a",
+    "vehicle_number": "DL01GE0906",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-02T04:54:00.103462+00:00",
+    "updated_at": "2026-05-02T04:54:00.103462+00:00"
+  },
+  {
+    "id": "2f632910-6490-486d-b4cf-ddf678e9b75a",
+    "vehicle_number": "HR68D8430",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-04T12:28:16.784859+00:00",
+    "updated_at": "2026-05-04T12:28:16.784859+00:00"
+  },
+  {
+    "id": "fffd4fe6-d40c-4975-a15f-f8a4edadf4d8",
+    "vehicle_number": "DL01GE0548",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-05T08:53:25.078933+00:00",
+    "updated_at": "2026-05-05T08:53:25.078933+00:00"
+  },
+  {
+    "id": "da31c783-bc4f-4aad-9a1f-996804bce562",
+    "vehicle_number": "RJ09GD5754",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-05T11:27:55.570885+00:00",
+    "updated_at": "2026-05-05T11:27:55.570885+00:00"
+  },
+  {
+    "id": "754df1a0-29a9-4e0a-9574-9020c33f1c57",
+    "vehicle_number": "TN29DZ6831",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-06T05:19:14.797558+00:00",
+    "updated_at": "2026-05-06T05:19:14.797558+00:00"
+  },
+  {
+    "id": "ecb3f092-3351-47bc-99bd-2260cd02d3bd",
+    "vehicle_number": "RJ52GB4942",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-06T05:21:42.787388+00:00",
+    "updated_at": "2026-05-06T05:21:42.787388+00:00"
+  },
+  {
+    "id": "25624e96-e9db-48c6-ba44-86540d93e1b2",
+    "vehicle_number": "HR47E7237",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-07T11:19:11.649778+00:00",
+    "updated_at": "2026-05-07T11:19:11.649778+00:00"
+  },
+  {
+    "id": "95977bff-4da8-48c5-bb45-8d63922c08a1",
+    "vehicle_number": "RJ14GQ4988",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-07T12:55:08.101139+00:00",
+    "updated_at": "2026-05-07T12:55:08.101139+00:00"
+  },
+  {
+    "id": "1cc67b71-703c-4f28-8acf-da24d9e7e982",
+    "vehicle_number": "RJ08GA7754",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-08T12:14:22.130846+00:00",
+    "updated_at": "2026-05-08T12:14:22.130846+00:00"
+  },
+  {
+    "id": "7403dc50-c652-4547-bc8f-92c471b9c48d",
+    "vehicle_number": "HR47F4413",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-08T14:36:27.652185+00:00",
+    "updated_at": "2026-05-08T14:36:27.652185+00:00"
+  },
+  {
+    "id": "ea0f01a4-69a6-4b9d-96eb-54d56e72ebee",
+    "vehicle_number": "RJ 10GB 5515",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-09T08:33:57.244149+00:00",
+    "updated_at": "2026-05-09T08:33:57.244149+00:00"
+  },
+  {
+    "id": "224adcd5-183a-446a-8982-7339cc68ef74",
+    "vehicle_number": "HR38AK0098",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-10T07:16:51.775988+00:00",
+    "updated_at": "2026-05-10T07:16:51.775988+00:00"
+  },
+  {
+    "id": "92f60aa7-8d17-4e07-8c55-15de77ab43de",
+    "vehicle_number": "HP20G5141",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-11T14:44:50.277911+00:00",
+    "updated_at": "2026-05-11T14:44:50.277911+00:00"
+  },
+  {
+    "id": "d739d1c0-0d0d-4135-bc97-ea653ba3f306",
+    "vehicle_number": "TN52AE4595",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-12T05:46:17.842582+00:00",
+    "updated_at": "2026-05-12T05:46:17.842582+00:00"
+  },
+  {
+    "id": "49c98cc3-8ec9-4308-8a1c-5b80f4368cc9",
+    "vehicle_number": "HR55AK9163",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-12T09:37:56.699347+00:00",
+    "updated_at": "2026-05-12T09:37:56.699347+00:00"
+  },
+  {
+    "id": "85f1c8a4-5320-498b-a409-bc7a7ae6cda1",
+    "vehicle_number": "RJ23GC9147",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-13T05:26:45.975475+00:00",
+    "updated_at": "2026-05-13T05:26:45.975475+00:00"
+  },
+  {
+    "id": "9a17741e-e57d-4c0c-978f-a49f41ea8c40",
+    "vehicle_number": "RJ14GN1887",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-14T06:07:09.402341+00:00",
+    "updated_at": "2026-05-14T06:07:09.402341+00:00"
+  },
+  {
+    "id": "d289f3c2-c9a5-4afa-b73f-6bf396a1f97b",
+    "vehicle_number": "HR38AA4873",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-16T10:56:49.589312+00:00",
+    "updated_at": "2026-05-16T10:56:49.589312+00:00"
+  },
+  {
+    "id": "d1e34c29-0cb4-48b3-891c-7626f8bb95ce",
+    "vehicle_number": "RJ50GB0567",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-16T12:53:33.7166+00:00",
+    "updated_at": "2026-05-16T12:53:33.7166+00:00"
+  },
+  {
+    "id": "75e8dc51-ac27-4260-804b-82cd1e4bd4d7",
+    "vehicle_number": "RJ14GE0487",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-16T14:20:20.402478+00:00",
+    "updated_at": "2026-05-16T14:20:20.402478+00:00"
+  },
+  {
+    "id": "5a5457ab-d4ce-4df9-96ed-7ece3daa0cf4",
+    "vehicle_number": "HR38AB4409",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-17T09:39:21.393869+00:00",
+    "updated_at": "2026-05-17T09:39:21.393869+00:00"
+  },
+  {
+    "id": "558ce06d-d89f-41d8-8e6d-dbf161f613cf",
+    "vehicle_number": "RJ14GK7033",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-18T11:43:32.217513+00:00",
+    "updated_at": "2026-05-18T11:43:32.217513+00:00"
+  },
+  {
+    "id": "b67f0bfa-e1aa-4010-a4ce-18ca48f6b530",
+    "vehicle_number": "NL01AC9875",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-19T05:03:56.705979+00:00",
+    "updated_at": "2026-05-19T05:03:56.705979+00:00"
+  },
+  {
+    "id": "da9da417-be63-4e46-98c4-fb868a401927",
+    "vehicle_number": "RJ14GQ4962",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-19T10:11:24.964278+00:00",
+    "updated_at": "2026-05-19T10:11:24.964278+00:00"
+  },
+  {
+    "id": "a8ff8cff-d8e6-4db3-9924-a55d6cbe766c",
+    "vehicle_number": "RJ02GA6174",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-20T04:34:55.869593+00:00",
+    "updated_at": "2026-05-20T04:34:55.869593+00:00"
+  },
+  {
+    "id": "3d60f13a-c258-4940-9b3e-ee3229da6341",
+    "vehicle_number": "HR55AH4756",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-20T09:46:23.320851+00:00",
+    "updated_at": "2026-05-20T09:46:23.320851+00:00"
+  },
+  {
+    "id": "b93d8d08-12ab-48cc-bec9-d2ca1aef6c5c",
+    "vehicle_number": "HR69D8979",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-20T12:04:45.732895+00:00",
+    "updated_at": "2026-05-20T12:04:45.732895+00:00"
+  },
+  {
+    "id": "e536fb35-9c44-4e27-84d0-faf2da884e9e",
+    "vehicle_number": "RJ32GA9333",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-21T04:45:22.745066+00:00",
+    "updated_at": "2026-05-21T04:45:22.745066+00:00"
+  },
+  {
+    "id": "c7ef78d9-39cb-4154-8613-963b62bc7a00",
+    "vehicle_number": "RJ14GU9326",
+    "vehicle_type": "PIC UP",
+    "owner_name": "GOPAL JI",
+    "is_active": true,
+    "created_at": "2026-05-22T09:26:02.283207+00:00",
+    "updated_at": "2026-05-22T11:18:19.657626+00:00"
+  },
+  {
+    "id": "2db6d363-fbc1-451c-861d-415177f0bfcd",
+    "vehicle_number": "HR38AG9610",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-24T09:18:27.48534+00:00",
+    "updated_at": "2026-05-24T09:18:27.48534+00:00"
+  },
+  {
+    "id": "89674a7c-1b25-4b84-a3ee-cd3d31ca1afa",
+    "vehicle_number": "RJ14GQ4987",
+    "vehicle_type": "RJ14GQ4987",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-24T11:08:30.452764+00:00",
+    "updated_at": "2026-05-24T11:08:30.452764+00:00"
+  },
+  {
+    "id": "fa014837-1b7e-482f-8877-2308481b9149",
+    "vehicle_number": "RJ27GE1213",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-25T08:25:36.612913+00:00",
+    "updated_at": "2026-05-25T08:25:36.612913+00:00"
+  },
+  {
+    "id": "7da3453e-828e-48e4-8b29-c8455fed9d52",
+    "vehicle_number": "HR46E9613",
+    "vehicle_type": "HR46E9613",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-25T13:30:18.103223+00:00",
+    "updated_at": "2026-05-25T13:30:18.103223+00:00"
+  },
+  {
+    "id": "7546aa2d-a843-42a9-974a-ba49c77c0f41",
+    "vehicle_number": "RJ05GB1429",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-26T05:47:15.458414+00:00",
+    "updated_at": "2026-05-26T05:47:15.458414+00:00"
+  },
+  {
+    "id": "ebcadc43-b6b8-4943-bea9-fe6ac258334c",
+    "vehicle_number": "RJ19GL0567",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-26T07:38:07.30423+00:00",
+    "updated_at": "2026-05-26T07:38:07.30423+00:00"
+  },
+  {
+    "id": "bc44f1fd-5278-4da1-a844-57d56bc9c474",
+    "vehicle_number": "RJ05GB4001",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-26T11:46:58.518714+00:00",
+    "updated_at": "2026-05-26T11:46:58.518714+00:00"
+  },
+  {
+    "id": "7853d38b-ef9c-4111-b79a-971a86b9d8ab",
+    "vehicle_number": "JH02AV7752",
+    "vehicle_type": "JH02AV7752",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-27T09:23:12.554641+00:00",
+    "updated_at": "2026-05-27T09:23:12.554641+00:00"
+  },
+  {
+    "id": "ca93faad-7d63-46c3-a0c8-b032c7e2ce34",
+    "vehicle_number": "RAKESH JI",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-27T11:36:28.420415+00:00",
+    "updated_at": "2026-05-27T11:36:28.420415+00:00"
+  },
+  {
+    "id": "3da5ac62-8ce2-4b73-9ceb-0adf7629f759",
+    "vehicle_number": "RJ02GB2320",
+    "vehicle_type": "RJ02GB2320",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-28T05:29:33.570939+00:00",
+    "updated_at": "2026-05-28T05:29:33.570939+00:00"
+  },
+  {
+    "id": "43acf01f-d278-4e7a-8922-3d6679839d35",
+    "vehicle_number": "HP38C2985",
+    "vehicle_type": "HP38C2985",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-28T13:01:59.152409+00:00",
+    "updated_at": "2026-05-28T13:01:59.152409+00:00"
+  },
+  {
+    "id": "bb2741e5-6e91-4e17-912f-4f3e95af7309",
+    "vehicle_number": "GJ06BX7518",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-29T06:10:17.087976+00:00",
+    "updated_at": "2026-05-29T06:10:17.087976+00:00"
+  },
+  {
+    "id": "dcc63bf9-8638-4e8b-9cb3-af599ac27107",
+    "vehicle_number": "UP16PT8624",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-29T12:06:40.036028+00:00",
+    "updated_at": "2026-05-29T12:06:40.036028+00:00"
+  },
+  {
+    "id": "a329d0dd-e0b4-4872-a936-8c1db11b351e",
+    "vehicle_number": "NL01AH7194",
+    "vehicle_type": "NL01AH7194",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-29T13:48:49.167934+00:00",
+    "updated_at": "2026-05-29T13:48:49.167934+00:00"
+  },
+  {
+    "id": "6b21929d-5576-4c9f-8d87-d430c641849c",
+    "vehicle_number": "RJ14GU7344",
+    "vehicle_type": "RJ14GU7344",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-30T14:42:01.517737+00:00",
+    "updated_at": "2026-05-30T14:42:01.517737+00:00"
+  },
+  {
+    "id": "acfb2499-4d18-4a6d-8f3f-c242cb4a1fb7",
+    "vehicle_number": "RJ14GQ9117",
+    "vehicle_type": "RJ14GQ9117",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-31T10:53:07.51577+00:00",
+    "updated_at": "2026-05-31T10:53:07.51577+00:00"
+  },
+  {
+    "id": "4608e7fa-11fb-4656-8e4d-849cd7f34ec3",
+    "vehicle_number": "RJ19GG9574",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-31T12:57:19.242863+00:00",
+    "updated_at": "2026-05-31T12:57:19.242863+00:00"
+  },
+  {
+    "id": "b816324a-fc75-4c17-9443-73fa233e9a81",
+    "vehicle_number": "HR61D4195",
+    "vehicle_type": "HR61D4195",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-31T14:35:35.724347+00:00",
+    "updated_at": "2026-05-31T14:35:35.724347+00:00"
+  },
+  {
+    "id": "f2e99c3f-1a39-4823-8b59-3ee1dec6d433",
+    "vehicle_number": "DL01GE2704",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-05-31T18:09:16.604609+00:00",
+    "updated_at": "2026-05-31T18:09:16.604609+00:00"
+  },
+  {
+    "id": "f4762d4a-a650-4739-9ecc-d40b9509ecbb",
+    "vehicle_number": "RJ14GG0988",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-06-03T12:39:07.942697+00:00",
+    "updated_at": "2026-06-03T12:39:07.942697+00:00"
+  },
+  {
+    "id": "34dc03a3-ca08-4c05-991d-7c8822004ea7",
+    "vehicle_number": "HR39G9914",
+    "vehicle_type": "HR39G9914",
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-06-04T07:02:09.243672+00:00",
+    "updated_at": "2026-06-04T07:02:09.243672+00:00"
+  },
+  {
+    "id": "7d555250-f6dd-4b87-8a9f-6711c85ca220",
+    "vehicle_number": "HR47F1666",
+    "vehicle_type": null,
+    "owner_name": null,
+    "is_active": true,
+    "created_at": "2026-06-04T10:49:56.330944+00:00",
+    "updated_at": "2026-06-04T10:49:56.330944+00:00"
+  }
+]

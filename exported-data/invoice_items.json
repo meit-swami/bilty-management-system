@@ -1,0 +1,107 @@
+[
+  {
+    "id": "e862a0c9-f506-41d4-a2f5-25f35009a4dc",
+    "invoice_id": "2115e1f7-3403-4a41-97c7-424cb7af97c8",
+    "bilty_id": "d33223b9-6a6e-470e-9a32-134eace6d8bb",
+    "amount": 1000,
+    "created_at": "2026-03-13T08:22:58.923038+00:00"
+  },
+  {
+    "id": "c6022daa-9a51-4259-8c98-a7953643764b",
+    "invoice_id": "1ef3eff6-5047-45a5-a581-1d07cca5a99a",
+    "bilty_id": "b6db0526-e55f-49be-8161-11fa755ce2f7",
+    "amount": 5560,
+    "created_at": "2026-03-13T08:29:53.504255+00:00"
+  },
+  {
+    "id": "a4eac2df-303b-4fbd-9d1d-ad9072f1d96e",
+    "invoice_id": "3a684bae-b811-40d6-a035-4beca00ced77",
+    "bilty_id": "62ab5a98-bed7-4018-9961-f8c206856d83",
+    "amount": 299,
+    "created_at": "2026-03-18T10:36:25.245858+00:00"
+  },
+  {
+    "id": "6bbd6c97-be27-4de3-8c86-08c1904cb9d5",
+    "invoice_id": "2cd74239-67e8-4b75-9b7d-064503a34fa0",
+    "bilty_id": "7b6e4760-3246-4b40-863a-a0cdc0cfcd91",
+    "amount": 2200,
+    "created_at": "2026-03-23T04:48:06.38749+00:00"
+  },
+  {
+    "id": "ea17deec-bcb6-45a7-ac20-bb11bd54fced",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "0a6b3562-b732-4780-ac1c-58b34aec78b1",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "401203b3-e3f2-418d-9c56-9ac88dbfa84f",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "0add5ef3-9bf9-4d7b-9cd5-4de1a06f27f0",
+    "amount": 1000,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "f109e2be-b973-40d4-bfb7-7f27ded0e296",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "bbc34d0e-88e0-4443-bad1-6581edc6225a",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "c4bc9498-5208-4d21-abb4-dbede40f44db",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "27188b96-9ff3-450b-a28b-5a97f5f02dcc",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "175bf69b-a154-4022-b5c9-3033a24e6c89",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "5639e04a-ad88-492c-a0de-80e9eb59ae06",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "02eb931a-b355-45f5-92aa-e34ae57c9da8",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "d2dd5746-09ed-4402-ae6f-53805bf537de",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "1529f0e3-a8c1-48b1-88f8-af61fd008106",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "886cad15-e2ea-4cba-9991-89bf8c1bc8dd",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "b85aa278-34b2-4241-905f-911cffe935ff",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "488a8e7e-8def-4755-8c09-2f25295944a0",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "b9662b29-745d-4756-91ad-b35ca718c8a7",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "289e3fe5-83a5-457e-9b22-32d42f97431e",
+    "amount": 1000,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "4debc1f0-a88a-4335-9171-4814122cf627",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "6b12d324-7a62-4339-ad62-bc1cb671d12f",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  },
+  {
+    "id": "d83807e9-5e09-4be5-9fba-93caaea99cd0",
+    "invoice_id": "5a76b3cc-3f4b-419d-a791-e18ade2717e0",
+    "bilty_id": "01edf3b8-1450-4d92-8a61-87e313d38faf",
+    "amount": 500,
+    "created_at": "2026-05-26T12:17:23.924512+00:00"
+  }
+]

@@ -135,6 +135,8 @@ export type Database = {
           driver_name: string | null
           eway_bill_number: string | null
           freight_amount: number | null
+          freight_status: string | null
+          gst_paid_by: string | null
           id: string
           loading_charges: number | null
           notes: string | null
@@ -172,6 +174,8 @@ export type Database = {
           driver_name?: string | null
           eway_bill_number?: string | null
           freight_amount?: number | null
+          freight_status?: string | null
+          gst_paid_by?: string | null
           id?: string
           loading_charges?: number | null
           notes?: string | null
@@ -209,6 +213,8 @@ export type Database = {
           driver_name?: string | null
           eway_bill_number?: string | null
           freight_amount?: number | null
+          freight_status?: string | null
+          gst_paid_by?: string | null
           id?: string
           loading_charges?: number | null
           notes?: string | null

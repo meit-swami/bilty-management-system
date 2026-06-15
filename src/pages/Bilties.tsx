@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabase-helpers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,13 +34,17 @@ export default function Bilties() {
   const { data: bilties = [], isLoading } = useQuery({
     queryKey: ["bilties", statusFilter, search, dateFrom, dateTo],
     queryFn: async () => {
-      let query = supabase.from("bilties").select("*").order("created_at", { ascending: false });
-      if (statusFilter !== "all") query = query.eq("status", statusFilter);
-      if (search) query = query.or(`bilty_number.ilike.%${search}%,consignor_name.ilike.%${search}%,consignee_name.ilike.%${search}%`);
-      if (dateFrom) query = query.gte("bilty_date", dateFrom);
-      if (dateTo) query = query.lte("bilty_date", dateTo);
-      const { data } = await query;
-      return data || [];
+      const allData = await fetchAllRows("bilties", {
+        order: { column: "created_at", ascending: false },
+        filters: (query: any) => {
+          if (statusFilter !== "all") query = query.eq("status", statusFilter);
+          if (search) query = query.or(`bilty_number.ilike.%${search}%,consignor_name.ilike.%${search}%,consignee_name.ilike.%${search}%`);
+          if (dateFrom) query = query.gte("bilty_date", dateFrom);
+          if (dateTo) query = query.lte("bilty_date", dateTo);
+          return query;
+        },
+      });
+      return allData;
     },
   });
 

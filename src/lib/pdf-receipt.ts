@@ -43,38 +43,43 @@ export async function generatePaymentReceiptPDF(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
 
-  // Dark header
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageWidth, 50, "F");
-
-  doc.setTextColor(255, 255, 255);
+  // Header - clean white background for print
+  doc.setTextColor(15, 23, 42);
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text("Payment Receipt", 16, 25);
+  doc.text("Payment Receipt", 16, 20);
 
   // Logo
-  const logoUrl = settings.logo_light_url || settings.logo_dark_url;
+  const logoUrl = settings.logo_dark_url || settings.logo_light_url;
   if (logoUrl) {
     const base64 = await loadImageAsBase64(logoUrl);
     if (base64) {
-      try { doc.addImage(base64, "PNG", 16, 30, 25, 15); } catch {}
+      try { doc.addImage(base64, "PNG", 16, 26, 25, 15); } catch {}
     }
   }
 
   // Company name right
   const name = settings.company_name || "Setu Go";
+  doc.setTextColor(15, 23, 42);
   doc.setFontSize(12);
-  doc.text(name, pageWidth - 16, 18, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.text(name, pageWidth - 16, 14, { align: "right" });
+  doc.setTextColor(60, 60, 60);
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  let ry = 25;
+  let ry = 22;
   if (settings.address) { doc.text(settings.address, pageWidth - 16, ry, { align: "right" }); ry += 4; }
   if (settings.phone) { doc.text(settings.phone, pageWidth - 16, ry, { align: "right" }); ry += 4; }
   if (settings.email) { doc.text(settings.email, pageWidth - 16, ry, { align: "right" }); ry += 4; }
   if (settings.gstin) { doc.text(`GSTIN: ${settings.gstin}`, pageWidth - 16, ry, { align: "right" }); }
 
+  // Separator line
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  doc.line(16, 48, pageWidth - 16, 48);
+
   doc.setTextColor(0, 0, 0);
-  let y = 62;
+  let y = 56;
 
   // Receipt details
   const labelX = 16;

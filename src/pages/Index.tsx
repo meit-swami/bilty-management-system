@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabase-helpers";
 import { useIsSuperAdmin } from "@/hooks/use-rbac";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,8 +60,7 @@ export default function Dashboard() {
   const { data: allBilties = [] } = useQuery({
     queryKey: ["bilties-kpi"],
     queryFn: async () => {
-      const { data } = await supabase.from("bilties").select("total_amount, advance_paid, balance_due");
-      return data || [];
+      return await fetchAllRows("bilties", { select: "total_amount, advance_paid, balance_due" });
     },
   });
 
@@ -76,8 +76,7 @@ export default function Dashboard() {
   const { data: allInvoices = [] } = useQuery({
     queryKey: ["invoices-kpi"],
     queryFn: async () => {
-      const { data } = await supabase.from("invoices").select("balance_due");
-      return data || [];
+      return await fetchAllRows("invoices", { select: "balance_due" });
     },
   });
 

@@ -120,6 +120,8 @@ export default function CreateBilty() {
   const [items, setItems] = useState<GoodsItem[]>([emptyItem()]);
 
   // Financials
+  const [gstPaidBy, setGstPaidBy] = useState("consignor");
+  const [freightStatus, setFreightStatus] = useState("to_be_billed");
   const [freightAmount, setFreightAmount] = useState(0);
   const [loadingCharges, setLoadingCharges] = useState(0);
   const [unloadingCharges, setUnloadingCharges] = useState(0);
@@ -222,6 +224,8 @@ export default function CreateBilty() {
       setConsigneeGstin(existingBilty.consignee_gstin || "");
       setShipTo(existingBilty.ship_to || "");
       setFreightAmount(existingBilty.freight_amount || 0);
+      setFreightStatus(existingBilty.freight_status || "to_be_billed");
+      setGstPaidBy((existingBilty as any).gst_paid_by || "consignor");
       setLoadingCharges(existingBilty.loading_charges || 0);
       setUnloadingCharges(existingBilty.unloading_charges || 0);
       setWeightCharges(existingBilty.weight_charges || 0);
@@ -393,6 +397,7 @@ export default function CreateBilty() {
     consignor_name: consignorName || null,
     consignor_address: consignorAddress || null,
     consignor_gstin: consignorGstin.toUpperCase() || null,
+    gst_paid_by: gstPaidBy || "consignor",
     ship_from: shipFrom || null,
     consignee_id: consigneeId || null,
     consignee_name: consigneeName || null,
@@ -402,6 +407,7 @@ export default function CreateBilty() {
     total_quantity: totalQuantity,
     total_weight: totalWeight,
     freight_amount: freightAmount,
+    freight_status: freightStatus,
     loading_charges: loadingCharges,
     unloading_charges: unloadingCharges,
     weight_charges: weightCharges,
@@ -806,6 +812,30 @@ export default function CreateBilty() {
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Financial Details (₹)</CardTitle></CardHeader>
         <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="space-y-2">
+              <Label>Freight Status <span className="text-destructive">*</span></Label>
+              <Select value={freightStatus} onValueChange={setFreightStatus} disabled={isBilled}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="to_be_billed">To Be Billed</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="to_pay">To Pay</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>GST Paid By</Label>
+              <Select value={gstPaidBy} onValueChange={setGstPaidBy} disabled={isBilled}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="consignor">Consignor</SelectItem>
+                  <SelectItem value="consignee">Consignee</SelectItem>
+                  <SelectItem value="transporter">Transporter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="space-y-2"><Label>Freight</Label><Input type="number" value={freightAmount || ""} onChange={(e) => setFreightAmount(Number(e.target.value))} disabled={isBilled} /></div>
             <div className="space-y-2"><Label>Loading</Label><Input type="number" value={loadingCharges || ""} onChange={(e) => setLoadingCharges(Number(e.target.value))} disabled={isBilled} /></div>

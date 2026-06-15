@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllRows } from "@/lib/supabase-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,31 +99,31 @@ export default function Reports() {
   // --- Data queries ---
   const { data: bilties = [] } = useQuery({
     queryKey: ["all-bilties-report"],
-    queryFn: async () => { const { data } = await supabase.from("bilties").select("*").order("bilty_date"); return data || []; },
+    queryFn: async () => { return await fetchAllRows("bilties", { order: { column: "bilty_date", ascending: true } }); },
   });
   const { data: invoices = [] } = useQuery({
     queryKey: ["all-invoices-report"],
-    queryFn: async () => { const { data } = await supabase.from("invoices").select("*").order("invoice_date"); return data || []; },
+    queryFn: async () => { return await fetchAllRows("invoices", { order: { column: "invoice_date", ascending: true } }); },
   });
   const { data: invoiceItems = [] } = useQuery({
     queryKey: ["all-invoice-items-report"],
-    queryFn: async () => { const { data } = await supabase.from("invoice_items").select("*"); return data || []; },
+    queryFn: async () => { return await fetchAllRows("invoice_items"); },
   });
   const { data: expenses = [] } = useQuery({
     queryKey: ["all-expenses-report"],
-    queryFn: async () => { const { data } = await supabase.from("expenses").select("*").order("expense_date"); return data || []; },
+    queryFn: async () => { return await fetchAllRows("expenses", { order: { column: "expense_date", ascending: true } }); },
   });
   const { data: parties = [] } = useQuery({
     queryKey: ["all-parties-report"],
-    queryFn: async () => { const { data } = await supabase.from("parties").select("*").order("name"); return data || []; },
+    queryFn: async () => { return await fetchAllRows("parties", { order: { column: "name", ascending: true } }); },
   });
   const { data: vehicles = [] } = useQuery({
     queryKey: ["all-vehicles-report"],
-    queryFn: async () => { const { data } = await supabase.from("vehicles").select("*"); return data || []; },
+    queryFn: async () => { return await fetchAllRows("vehicles"); },
   });
   const { data: payments = [] } = useQuery({
     queryKey: ["all-payments-report"],
-    queryFn: async () => { const { data } = await supabase.from("payment_records").select("*").order("payment_date"); return data || []; },
+    queryFn: async () => { return await fetchAllRows("payment_records", { order: { column: "payment_date", ascending: true } }); },
   });
 
   // --- Filtered data ---
