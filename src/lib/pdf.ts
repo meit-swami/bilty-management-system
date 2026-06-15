@@ -159,20 +159,6 @@ export async function generateBiltyPDF(
     y += 5;
     addField("Date", formatDate(bilty.bilty_date), 16, y);
     y += 5;
-    if (bilty.freight_status) {
-      const statusLabel = bilty.freight_status === "to_be_billed" ? "To Be Billed"
-        : bilty.freight_status === "paid" ? "Paid"
-        : bilty.freight_status === "to_pay" ? "To Pay" : bilty.freight_status;
-      addField("Freight", statusLabel, 16, y);
-      y += 5;
-    }
-    if ((bilty as any).gst_paid_by) {
-      const gstLabel = (bilty as any).gst_paid_by === "consignor" ? "Consignor"
-        : (bilty as any).gst_paid_by === "consignee" ? "Consignee"
-        : (bilty as any).gst_paid_by === "transporter" ? "Transporter" : (bilty as any).gst_paid_by;
-      addField("GST Paid By", gstLabel, 16, y);
-      y += 5;
-    }
 
     // Right column – Transport Details
     const rx = 120;
@@ -314,7 +300,31 @@ export async function generateBiltyPDF(
       y = (doc as any).lastAutoTable.finalY + 12;
     }
 
-    // ── Financial summary ──
+    // ── Financial Details (matches create/edit form) ──
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(80);
+    doc.text("FINANCIAL DETAILS:", 16, y);
+    doc.setTextColor(0);
+    y += 7;
+
+    doc.setFontSize(9);
+    if (bilty.freight_status) {
+      const statusLabel = bilty.freight_status === "to_be_billed" ? "To Be Billed"
+        : bilty.freight_status === "paid" ? "Paid"
+        : bilty.freight_status === "to_pay" ? "To Pay" : bilty.freight_status;
+      addField("Freight Status", statusLabel, 16, y);
+      y += 5;
+    }
+    if ((bilty as any).gst_paid_by) {
+      const gstLabel = (bilty as any).gst_paid_by === "consignor" ? "Consignor"
+        : (bilty as any).gst_paid_by === "consignee" ? "Consignee"
+        : (bilty as any).gst_paid_by === "transporter" ? "Transporter" : (bilty as any).gst_paid_by;
+      addField("GST Paid By", gstLabel, 16, y);
+      y += 5;
+    }
+    y += 2;
+
     const sumX = 120;
     const valX = 190;
     doc.setFontSize(10);
@@ -332,6 +342,10 @@ export async function generateBiltyPDF(
     addSumLine("Unloading Charges", bilty.unloading_charges);
     addSumLine("Weight Charges", bilty.weight_charges);
     addSumLine("Other Charges", bilty.other_charges);
+
+    // TOTAL and everything below starts on a new page
+    doc.addPage();
+    y = 20;
 
     // Separator before total
     doc.setDrawColor(200);
@@ -359,17 +373,6 @@ export async function generateBiltyPDF(
     doc.text(formatINR(bal), valX, y, { align: "right" });
     doc.setTextColor(0);
     y += 10;
-
-    // ── GST Paid By row (near financial summary) ──
-    if ((bilty as any).gst_paid_by) {
-      const gstByLabel = (bilty as any).gst_paid_by === "consignor" ? "CONSIGNOR"
-        : (bilty as any).gst_paid_by === "consignee" ? "CONSIGNEE"
-        : (bilty as any).gst_paid_by === "transporter" ? "TRANSPORTER" : (bilty as any).gst_paid_by.toUpperCase();
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.text(`GST: ${gstByLabel}`, sumX, y);
-      y += 8;
-    }
 
     // ── Notes ──
     if (bilty.notes) {
