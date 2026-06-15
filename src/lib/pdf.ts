@@ -161,7 +161,7 @@ function drawBox(doc: jsPDF, x: number, y: number, w: number, h: number) {
 }
 
 /* ─── Footer ─── */
-function addFooter(doc: jsPDF, settings: CompanySettings) {
+function addFooter(doc: jsPDF, settings: CompanySettings, showPageNumbers = true) {
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -171,7 +171,9 @@ function addFooter(doc: jsPDF, settings: CompanySettings) {
       `© ${new Date().getFullYear()} ${settings.company_name || "Setu Go"}`,
       105, 288, { align: "center" }
     );
-    doc.text(`Page ${i} of ${pageCount}`, 196, 288, { align: "right" });
+    if (showPageNumbers) {
+      doc.text(`Page ${i} of ${pageCount}`, 196, 288, { align: "right" });
+    }
     doc.setTextColor(0);
   }
 }
@@ -235,13 +237,13 @@ export async function generateBiltyPDF(
       addField("Mobile", bilty.driver_mobile, rx, rty);
     }
 
-    y = detailsTop + boxH + 2;
-    doc.setFontSize(7.5);
+    y = detailsTop + boxH + 5;
+    doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(120);
     doc.text(copyLabels[copyIdx], pageWidth - margin, y, { align: "right" });
     doc.setTextColor(0);
-    y += 4;
+    y += 6;
 
     // ── Bill & E-way Details ──
     const billsToShow = billEntries.length > 0
@@ -315,17 +317,24 @@ export async function generateBiltyPDF(
     }
     y = partyTop + partyH + 3;
 
-    // ── Goods table (max ~3 rows) ──
-    if (items.length > 0) {
+    // ── Goods table (max ~3 rows) + Grand Total ──
+    const displayItems = items.slice(0, 3);
+    if (displayItems.length > 0) {
+      const grandQty = displayItems.reduce((s, i) => s + Number(i.quantity || 0), 0);
+      const grandWeight = displayItems.reduce((s, i) => s + Number(i.weight || 0), 0);
+      const grandAmount = displayItems.reduce((s, i) => s + Number(i.amount || 0), 0);
+
       autoTable(doc, {
         startY: y,
         head: [["#", "Description", "Qty", "Weight (kg)", "Rate", "Amount"]],
-        body: items.slice(0, 3).map((item, idx) => [
+        body: displayItems.map((item, idx) => [
           idx + 1, item.description, item.quantity || 0, item.weight || 0,
           formatINR(item.rate || 0), formatINR(item.amount || 0),
         ]),
+        foot: [["", "Grand Total", grandQty, grandWeight, "", formatINR(grandAmount)]],
         theme: "grid",
         headStyles: { fillColor: [248, 250, 252], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 7.5, cellPadding: 1.5 },
+        footStyles: { fillColor: [248, 250, 252], textColor: [30, 30, 30], fontStyle: "bold", fontSize: 7.5, cellPadding: 1.5 },
         styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [210, 210, 210], lineWidth: 0.2 },
         columnStyles: { 0: { halign: "center", cellWidth: 10 }, 4: { halign: "right" }, 5: { halign: "right" } },
         margin: { left: margin, right: margin },
@@ -343,12 +352,13 @@ export async function generateBiltyPDF(
       : (bilty as any).gst_paid_by === "transporter" ? "Transporter"
       : (bilty as any).gst_paid_by || "—";
 
+    y += 4;
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(80);
     doc.text("FINANCIAL DETAILS", margin, y);
     doc.setTextColor(0);
-    y += 3;
+    y += 4;
 
     autoTable(doc, {
       startY: y,
@@ -379,22 +389,25 @@ export async function generateBiltyPDF(
       doc.setFont("helvetica", "normal");
       const noteLines = doc.splitTextToSize(bilty.notes, pageWidth - margin * 2 - 16);
       doc.text(noteLines.slice(0, 2), margin + 14, y + 3);
-      y += 3 + Math.min(noteLines.length, 2) * 3;
     }
 
-    // ── Terms & Conditions (2 columns, compact) ──
-    y += 2;
+    // ── Terms & Signatures (anchored to bottom) ──
+    const pageH = doc.internal.pageSize.getHeight();
+    const termsTop = pageH - 54;
+    const sigLineY = pageH - 22;
+    const sig1X = margin;
+    const sig2X = pageWidth / 2 - 22;
+    const sig3X = pageWidth - margin - 48;
+
     doc.setDrawColor(180);
     doc.setLineWidth(0.2);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 4;
+    doc.line(margin, termsTop, pageWidth - margin, termsTop);
 
-    doc.setFontSize(7.5);
+    doc.setFontSize(8.5);
     doc.setFont("helvetica", "bold");
-    doc.text("TERMS & CONDITIONS", margin, y);
-    y += 3.5;
+    doc.text("TERMS & CONDITIONS", margin, termsTop + 5);
 
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     const termsLines = [
       "1. Goods booked at owner's risk. Company is not responsible for any damage or loss.",
@@ -405,34 +418,28 @@ export async function generateBiltyPDF(
       "6. Goods At Owner Risk.",
     ];
     const midX = pageWidth / 2;
+    const termsTextY = termsTop + 10;
     termsLines.slice(0, 3).forEach((line, i) => {
-      doc.text(line, margin, y + i * 3);
+      doc.text(line, margin, termsTextY + i * 3.8);
     });
     termsLines.slice(3).forEach((line, i) => {
-      doc.text(line, midX, y + i * 3);
+      doc.text(line, midX, termsTextY + i * 3.8);
     });
-    y += 12;
-
-    // ── Signatures ──
-    const sigY = y + 6;
-    const sig1X = margin;
-    const sig2X = pageWidth / 2 - 22;
-    const sig3X = pageWidth - margin - 48;
 
     doc.setDrawColor(0);
     doc.setLineWidth(0.25);
-    doc.line(sig1X, sigY, sig1X + 42, sigY);
-    doc.line(sig2X, sigY, sig2X + 42, sigY);
-    doc.line(sig3X, sigY, sig3X + 42, sigY);
+    doc.line(sig1X, sigLineY, sig1X + 42, sigLineY);
+    doc.line(sig2X, sigLineY, sig2X + 42, sigLineY);
+    doc.line(sig3X, sigLineY, sig3X + 42, sigLineY);
 
-    doc.setFontSize(6);
+    doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text("CONSIGNOR SIGNATURE", sig1X, sigY + 4);
-    doc.text("DRIVER SIGNATURE", sig2X, sigY + 4);
-    doc.text(`FOR ${(settings.company_name || "COMPANY").toUpperCase()}`, sig3X, sigY + 4);
+    doc.text("CONSIGNOR SIGNATURE", sig1X, sigLineY + 4.5);
+    doc.text("DRIVER SIGNATURE", sig2X, sigLineY + 4.5);
+    doc.text(`FOR ${(settings.company_name || "COMPANY").toUpperCase()}`, sig3X, sigLineY + 4.5);
   }
 
-  addFooter(doc, settings);
+  addFooter(doc, settings, false);
   return doc;
 }
 
