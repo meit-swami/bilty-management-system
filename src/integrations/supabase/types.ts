@@ -828,6 +828,8 @@ export type Database = {
           subtotal: number | null
           total_amount: number | null
           updated_at: string
+          vehicle_id: string | null
+          vehicle_number: string | null
         }
         Insert: {
           amount_paid?: number | null
@@ -853,6 +855,8 @@ export type Database = {
           subtotal?: number | null
           total_amount?: number | null
           updated_at?: string
+          vehicle_id?: string | null
+          vehicle_number?: string | null
         }
         Update: {
           amount_paid?: number | null
@@ -878,6 +882,8 @@ export type Database = {
           subtotal?: number | null
           total_amount?: number | null
           updated_at?: string
+          vehicle_id?: string | null
+          vehicle_number?: string | null
         }
         Relationships: [
           {
@@ -885,6 +891,13 @@ export type Database = {
             columns: ["party_id"]
             isOneToOne: false
             referencedRelation: "parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]

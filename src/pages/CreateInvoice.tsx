@@ -28,12 +28,15 @@ export default function CreateInvoice() {
   const queryClient = useQueryClient();
 
   useRealtimeTable("parties", ["parties-active"]);
+  useRealtimeTable("vehicles", ["vehicles-active"]);
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
   const [partyId, setPartyId] = useState("");
   const [partyName, setPartyName] = useState("");
   const [partyGstin, setPartyGstin] = useState("");
+  const [vehicleId, setVehicleId] = useState("");
+  const [vehicleNumber, setVehicleNumber] = useState("");
   const [selectedBilties, setSelectedBilties] = useState<string[]>([]);
   const [gstType, setGstType] = useState("igst");
   const [gstRate, setGstRate] = useState(5);
@@ -52,6 +55,14 @@ export default function CreateInvoice() {
     queryKey: ["parties-active"],
     queryFn: async () => {
       const { data } = await supabase.from("parties").select("*").eq("is_active", true).order("name");
+      return data || [];
+    },
+  });
+
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ["vehicles-active"],
+    queryFn: async () => {
+      const { data } = await supabase.from("vehicles").select("*").eq("is_active", true).order("vehicle_number");
       return data || [];
     },
   });
@@ -124,6 +135,8 @@ export default function CreateInvoice() {
       setPartyId(existingInvoice.party_id || "");
       setPartyName(existingInvoice.party_name || "");
       setPartyGstin(existingInvoice.party_gstin || "");
+      setVehicleId(existingInvoice.vehicle_id || "");
+      setVehicleNumber(existingInvoice.vehicle_number || "");
       setPaymentStatus(existingInvoice.payment_status);
       setAmountPaid(existingInvoice.amount_paid || 0);
       const igst = Number(existingInvoice.igst_rate || 0);
@@ -167,6 +180,12 @@ export default function CreateInvoice() {
     if (!isEditMode) setSelectedBilties([]);
   };
 
+  const handleVehicleSelect = (id: string) => {
+    setVehicleId(id);
+    const v = vehicles.find((v) => v.id === id);
+    if (v) setVehicleNumber(v.vehicle_number);
+  };
+
   const toggleBilty = (id: string) => {
     setSelectedBilties((prev) => prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]);
   };
@@ -192,6 +211,8 @@ export default function CreateInvoice() {
         party_id: partyId || null,
         party_name: partyName || null,
         party_gstin: partyGstin || null,
+        vehicle_id: vehicleId || null,
+        vehicle_number: vehicleNumber || null,
         subtotal,
         cgst_rate: gstType === "cgst_sgst" ? gstRate / 2 : 0,
         cgst_amount: cgstAmount,
@@ -292,7 +313,7 @@ export default function CreateInvoice() {
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Invoice Details</CardTitle></CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="space-y-2">
               <Label>Invoice Number</Label>
               <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} readOnly={isEditMode} className={isEditMode ? "bg-muted" : ""} />
@@ -314,6 +335,23 @@ export default function CreateInvoice() {
                   { key: "city", label: "City" },
                 ]}
                 queryKeys={["parties-active"]}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Vehicle</Label>
+              <SelectWithAdd
+                value={vehicleId}
+                onValueChange={handleVehicleSelect}
+                placeholder="Select vehicle"
+                items={vehicles.map((v) => ({ id: v.id, label: v.vehicle_number }))}
+                tableName="vehicles"
+                addTitle="Vehicle"
+                addFields={[
+                  { key: "vehicle_number", label: "Vehicle Number", required: true },
+                  { key: "vehicle_type", label: "Type" },
+                  { key: "owner_name", label: "Owner Name" },
+                ]}
+                queryKeys={["vehicles-active"]}
               />
             </div>
             <div className="space-y-2">

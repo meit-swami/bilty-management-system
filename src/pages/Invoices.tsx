@@ -33,7 +33,7 @@ export default function Invoices() {
     queryFn: async () => {
       let query = supabase.from("invoices").select("*").order("created_at", { ascending: false });
       if (statusFilter !== "all") query = query.eq("payment_status", statusFilter);
-      if (search) query = query.or(`invoice_number.ilike.%${search}%,party_name.ilike.%${search}%`);
+      if (search) query = query.or(`invoice_number.ilike.%${search}%,party_name.ilike.%${search}%,vehicle_number.ilike.%${search}%`);
       if (dateFrom) query = query.gte("invoice_date", dateFrom);
       if (dateTo) query = query.lte("invoice_date", dateTo);
       const { data } = await query;
@@ -152,7 +152,7 @@ export default function Invoices() {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Search</label>
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Invoice no or party..." className="w-48" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Invoice no, party or vehicle..." className="w-48" />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">From</label>
@@ -176,6 +176,7 @@ export default function Invoices() {
                 <TableHead>Invoice No</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Party</TableHead>
+                <TableHead>Vehicle</TableHead>
                 <TableHead className="text-right">Subtotal</TableHead>
                 <TableHead className="text-right">Tax</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -186,9 +187,9 @@ export default function Invoices() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
               ) : invoices.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No invoices found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No invoices found</TableCell></TableRow>
               ) : (
                 invoices.map((inv) => {
                   const gst = Number(inv.cgst_amount || 0) + Number(inv.sgst_amount || 0) + Number(inv.igst_amount || 0);
@@ -197,6 +198,7 @@ export default function Invoices() {
                       <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                       <TableCell>{formatDate(inv.invoice_date)}</TableCell>
                       <TableCell>{inv.party_name || "—"}</TableCell>
+                      <TableCell>{inv.vehicle_number || "—"}</TableCell>
                       <TableCell className="text-right">{formatINR(Number(inv.subtotal || 0))}</TableCell>
                       <TableCell className="text-right">{gst > 0 ? formatINR(gst) : "—"}</TableCell>
                       <TableCell className="text-right font-medium">{formatINR(Number(inv.total_amount || 0))}</TableCell>
