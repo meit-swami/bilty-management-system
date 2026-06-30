@@ -19,6 +19,24 @@ import { useRealtimeTable } from "@/hooks/use-realtime-query";
 import { generateInvoicePDF } from "@/lib/pdf";
 import { toast } from "@/hooks/use-toast";
 
+function invoiceMatchesSearch(inv: Record<string, unknown>, term: string): boolean {
+  if (!term.trim()) return true;
+  const q = term.trim().toLowerCase();
+  const searchable = [
+    inv.invoice_number,
+    inv.party_name,
+    inv.party_gstin,
+    inv.vehicle_number,
+    inv.payment_status,
+    inv.notes,
+    inv.subtotal,
+    inv.total_amount,
+    inv.balance_due,
+    inv.amount_paid,
+  ];
+  return searchable.some((value) => value != null && String(value).toLowerCase().includes(q));
+}
+
 export default function Invoices() {
   useRealtimeTable("invoices", ["invoices"]);
   const navigate = useNavigate();
@@ -33,11 +51,13 @@ export default function Invoices() {
     queryFn: async () => {
       let query = supabase.from("invoices").select("*").order("created_at", { ascending: false });
       if (statusFilter !== "all") query = query.eq("payment_status", statusFilter);
-      if (search) query = query.or(`invoice_number.ilike.%${search}%,party_name.ilike.%${search}%,vehicle_number.ilike.%${search}%`);
       if (dateFrom) query = query.gte("invoice_date", dateFrom);
       if (dateTo) query = query.lte("invoice_date", dateTo);
-      const { data } = await query;
-      return data || [];
+      const { data, error } = await query;
+      if (error) throw error;
+      const rows = data || [];
+      if (!search.trim()) return rows;
+      return rows.filter((inv) => invoiceMatchesSearch(inv, search));
     },
   });
 
@@ -152,7 +172,7 @@ export default function Invoices() {
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Search</label>
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Invoice no, party or vehicle..." className="w-48" />
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search invoice, party, vehicle..." className="w-56" />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">From</label>
