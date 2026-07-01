@@ -27,8 +27,8 @@ export default function CreateInvoice() {
   const isEditMode = !!editId;
   const queryClient = useQueryClient();
 
-  useRealtimeTable("parties", ["parties-active"]);
-  useRealtimeTable("vehicles", ["vehicles-active"]);
+  useRealtimeTable("parties", ["parties-all"]);
+  useRealtimeTable("vehicles", ["vehicles-all"]);
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
@@ -52,19 +52,13 @@ export default function CreateInvoice() {
   });
 
   const { data: parties = [] } = useQuery({
-    queryKey: ["parties-active"],
-    queryFn: async () => {
-      const { data } = await supabase.from("parties").select("*").eq("is_active", true).order("name");
-      return data || [];
-    },
+    queryKey: ["parties-all"],
+    queryFn: () => fetchAllRows("parties", { order: { column: "name" } }),
   });
 
   const { data: vehicles = [] } = useQuery({
-    queryKey: ["vehicles-active"],
-    queryFn: async () => {
-      const { data } = await supabase.from("vehicles").select("*").eq("is_active", true).order("vehicle_number");
-      return data || [];
-    },
+    queryKey: ["vehicles-all"],
+    queryFn: () => fetchAllRows("vehicles", { order: { column: "vehicle_number" } }),
   });
 
   // For edit mode: load existing invoice
@@ -325,6 +319,7 @@ export default function CreateInvoice() {
                 value={partyId}
                 onValueChange={handlePartySelect}
                 placeholder="Select party"
+                searchPlaceholder="Search party..."
                 items={parties.map((p) => ({ id: p.id, label: p.name }))}
                 tableName="parties"
                 addTitle="Party"
@@ -334,7 +329,7 @@ export default function CreateInvoice() {
                   { key: "gstin", label: "GSTIN" },
                   { key: "city", label: "City" },
                 ]}
-                queryKeys={["parties-active"]}
+                queryKeys={["parties-all"]}
               />
             </div>
             <div className="space-y-2">
@@ -343,6 +338,7 @@ export default function CreateInvoice() {
                 value={vehicleId}
                 onValueChange={handleVehicleSelect}
                 placeholder="Select vehicle"
+                searchPlaceholder="Search vehicle..."
                 items={vehicles.map((v) => ({ id: v.id, label: v.vehicle_number }))}
                 tableName="vehicles"
                 addTitle="Vehicle"
@@ -351,7 +347,7 @@ export default function CreateInvoice() {
                   { key: "vehicle_type", label: "Type" },
                   { key: "owner_name", label: "Owner Name" },
                 ]}
-                queryKeys={["vehicles-active"]}
+                queryKeys={["vehicles-all"]}
               />
             </div>
             <div className="space-y-2">

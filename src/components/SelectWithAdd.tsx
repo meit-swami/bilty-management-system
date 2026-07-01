@@ -2,22 +2,29 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { swalSuccess, swalError } from "@/lib/swal";
 
 interface SelectWithAddProps {
@@ -25,13 +32,12 @@ interface SelectWithAddProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   items: { id: string; label: string }[];
-  // Quick-add config
   tableName: string;
   addFields: { key: string; label: string; required?: boolean }[];
   addTitle: string;
   queryKeys: string[];
-  /** Called after successful add, receives the new record id */
   onAdded?: (id: string) => void;
+  searchPlaceholder?: string;
 }
 
 export function SelectWithAdd({
@@ -44,10 +50,14 @@ export function SelectWithAdd({
   addTitle,
   queryKeys,
   onAdded,
+  searchPlaceholder = "Search...",
 }: SelectWithAddProps) {
   const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
+
+  const selectedLabel = items.find((item) => item.id === value)?.label;
 
   const addMutation = useMutation({
     mutationFn: async () => {
@@ -79,18 +89,51 @@ export function SelectWithAdd({
 
   return (
     <div className="flex gap-1">
-      <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="flex-1">
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {items.map((item) => (
-            <SelectItem key={item.id} value={item.id}>
-              {item.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className={cn(
+              "flex-1 justify-between font-normal h-10 px-3",
+              !value && "text-muted-foreground",
+            )}
+          >
+            <span className="truncate">{selectedLabel || placeholder}</span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+          <Command>
+            <CommandInput placeholder={searchPlaceholder} />
+            <CommandList>
+              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandGroup>
+                {items.map((item) => (
+                  <CommandItem
+                    key={item.id}
+                    value={item.label}
+                    onSelect={() => {
+                      onValueChange(item.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === item.id ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    <span className="truncate">{item.label}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
       <Button
         type="button"
         variant="outline"
