@@ -16,7 +16,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { formatINR, formatDate } from "@/lib/format";
-import { Save, X } from "lucide-react";
+import { Save, X, Loader2 } from "lucide-react";
 import { SelectWithAdd } from "@/components/SelectWithAdd";
 import { swalSuccess, swalError, swalConfirm } from "@/lib/swal";
 import { useRealtimeTable } from "@/hooks/use-realtime-query";
@@ -29,6 +29,7 @@ export default function CreateInvoice() {
 
   useRealtimeTable("parties", ["parties-all"]);
   useRealtimeTable("vehicles", ["vehicles-all"]);
+  useRealtimeTable("bilties", ["unbilled-bilties"]);
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
@@ -82,12 +83,15 @@ export default function CreateInvoice() {
     enabled: !!editId,
   });
 
-  // Unbilled bilties + bilties from current invoice (for edit mode)
-  const { data: unbilledBilties = [] } = useQuery({
-    queryKey: ["unbilled-bilties", editId, partyId],
+  // Unbilled bilties — refetches instantly when party, vehicle, or date changes
+  const { data: unbilledBilties = [], isFetching: isFetchingBilties } = useQuery({
+    queryKey: ["unbilled-bilties", editId, partyId, partyName, vehicleId, vehicleNumber, invoiceDate],
     queryFn: async () => {
       const editBiltyIds = existingInvItems.map((i) => i.bilty_id);
-      
+      const hasFilter = !!(partyId || vehicleId || vehicleNumber);
+
+      if (!isEditMode && !hasFilter) return [];
+
       const allData = await fetchAllRows("bilties", {
         order: { column: "bilty_date", ascending: false },
         filters: (query: any) => {
@@ -96,27 +100,47 @@ export default function CreateInvoice() {
           } else {
             query = query.eq("status", "unbilled");
           }
+
+          if (vehicleId) {
+            query = query.eq("vehicle_id", vehicleId);
+          } else if (vehicleNumber) {
+            query = query.eq("vehicle_number", vehicleNumber);
+          }
+
+          if (partyId) {
+            query = query.or(`consignor_id.eq.${partyId},consignee_id.eq.${partyId}`);
+          }
+
+          if (invoiceDate) {
+            query = query.lte("bilty_date", invoiceDate);
+          }
+
           return query;
         },
       });
-      
-      let result = allData;
-      
-      // Filter by party if selected (match consignor or consignee name)
-      if (partyId) {
-        const party = parties.find(p => p.id === partyId);
-        if (party) {
-          result = result.filter(b => 
-            b.consignor_name === party.name || 
-            b.consignee_name === party.name ||
+
+      return allData.filter((b) => {
+        if (editBiltyIds.includes(b.id)) return true;
+
+        if (partyId) {
+          const partyMatch =
             b.consignor_id === partyId ||
             b.consignee_id === partyId ||
-            editBiltyIds.includes(b.id)
-          );
+            (partyName && (b.consignor_name === partyName || b.consignee_name === partyName));
+          if (!partyMatch) return false;
         }
-      }
-      
-      return result;
+
+        if (vehicleId || vehicleNumber) {
+          const vehicleMatch =
+            (vehicleId && b.vehicle_id === vehicleId) ||
+            (vehicleNumber && b.vehicle_number?.toUpperCase() === vehicleNumber.toUpperCase());
+          if (!vehicleMatch) return false;
+        }
+
+        if (invoiceDate && b.bilty_date > invoiceDate) return false;
+
+        return true;
+      });
     },
     enabled: !editId || existingInvItems.length >= 0,
   });
@@ -170,7 +194,6 @@ export default function CreateInvoice() {
         setGstType(partyState === settings.state_code ? "cgst_sgst" : "igst");
       }
     }
-    // Reset bilty selection when party changes (except in edit mode)
     if (!isEditMode) setSelectedBilties([]);
   };
 
@@ -178,7 +201,21 @@ export default function CreateInvoice() {
     setVehicleId(id);
     const v = vehicles.find((v) => v.id === id);
     if (v) setVehicleNumber(v.vehicle_number);
+    if (!isEditMode) setSelectedBilties([]);
   };
+
+  const handleInvoiceDateChange = (date: string) => {
+    setInvoiceDate(date);
+    if (!isEditMode) setSelectedBilties([]);
+  };
+
+  const biltyTableTitle = (() => {
+    const parts: string[] = [];
+    if (partyName) parts.push(partyName);
+    if (vehicleNumber) parts.push(vehicleNumber);
+    if (parts.length === 0) return "Select Unbilled Bilties";
+    return `Unbilled Bilties — ${parts.join(" · ")}`;
+  })();
 
   const toggleBilty = (id: string) => {
     setSelectedBilties((prev) => prev.includes(id) ? prev.filter((b) => b !== id) : [...prev, id]);
@@ -312,7 +349,7 @@ export default function CreateInvoice() {
               <Label>Invoice Number</Label>
               <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} readOnly={isEditMode} className={isEditMode ? "bg-muted" : ""} />
             </div>
-            <div className="space-y-2"><Label>Invoice Date</Label><Input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></div>
+            <div className="space-y-2"><Label>Invoice Date</Label><Input type="date" value={invoiceDate} onChange={(e) => handleInvoiceDateChange(e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Party</Label>
               <SelectWithAdd
@@ -367,8 +404,9 @@ export default function CreateInvoice() {
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">
-            {partyId ? `Unbilled Bilties for ${partyName}` : "Select Unbilled Bilties"}
+          <CardTitle className="text-base flex items-center gap-2">
+            {biltyTableTitle}
+            {isFetchingBilties && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -380,13 +418,20 @@ export default function CreateInvoice() {
                 <TableHead>Date</TableHead>
                 <TableHead>Consignor</TableHead>
                 <TableHead>Consignee</TableHead>
+                <TableHead>Vehicle</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {unbilledBilties.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  {partyId ? "No unbilled bilties for this party" : "No unbilled bilties"}
+              {isFetchingBilties && unbilledBilties.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <Loader2 className="h-5 w-5 animate-spin inline-block mr-2" />Loading bilties...
+                </TableCell></TableRow>
+              ) : unbilledBilties.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  {!partyId && !vehicleId
+                    ? "Select a party or vehicle above to load unbilled bilties"
+                    : "No unbilled bilties match your selection"}
                 </TableCell></TableRow>
               ) : (
                 unbilledBilties.map((b) => (
@@ -396,6 +441,7 @@ export default function CreateInvoice() {
                     <TableCell>{formatDate(b.bilty_date)}</TableCell>
                     <TableCell>{b.consignor_name || "—"}</TableCell>
                     <TableCell>{b.consignee_name || "—"}</TableCell>
+                    <TableCell>{b.vehicle_number || "—"}</TableCell>
                     <TableCell className="text-right font-medium">{formatINR(Number(b.total_amount || 0))}</TableCell>
                   </TableRow>
                 ))
