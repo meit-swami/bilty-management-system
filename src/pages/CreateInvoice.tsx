@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { formatINR, formatDate } from "@/lib/format";
 import { Save, X, Loader2 } from "lucide-react";
-import { SelectWithAdd } from "@/components/SelectWithAdd";
+import { MultiSelectWithAdd } from "@/components/MultiSelectWithAdd";
 import { swalSuccess, swalError, swalConfirm } from "@/lib/swal";
 import { useRealtimeTable } from "@/hooks/use-realtime-query";
 
@@ -33,11 +33,8 @@ export default function CreateInvoice() {
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
-  const [partyId, setPartyId] = useState("");
-  const [partyName, setPartyName] = useState("");
-  const [partyGstin, setPartyGstin] = useState("");
-  const [vehicleId, setVehicleId] = useState("");
-  const [vehicleNumber, setVehicleNumber] = useState("");
+  const [selectedPartyIds, setSelectedPartyIds] = useState<string[]>([]);
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState<string[]>([]);
   const [selectedBilties, setSelectedBilties] = useState<string[]>([]);
   const [gstType, setGstType] = useState("igst");
   const [gstRate, setGstRate] = useState(5);
@@ -83,12 +80,20 @@ export default function CreateInvoice() {
     enabled: !!editId,
   });
 
+  const selectedPartyNames = selectedPartyIds
+    .map((id) => parties.find((p) => p.id === id)?.name)
+    .filter(Boolean) as string[];
+  const selectedVehicleNumbers = selectedVehicleIds
+    .map((id) => vehicles.find((v) => v.id === id)?.vehicle_number)
+    .filter(Boolean) as string[];
+  const hasActiveFilters = selectedPartyIds.length > 0 || selectedVehicleIds.length > 0;
+
   // Unbilled bilties — refetches instantly when party, vehicle, or date changes
   const { data: unbilledBilties = [], isFetching: isFetchingBilties } = useQuery({
-    queryKey: ["unbilled-bilties", editId, partyId, partyName, vehicleId, vehicleNumber, invoiceDate],
+    queryKey: ["unbilled-bilties", editId, selectedPartyIds, selectedVehicleIds, invoiceDate],
     queryFn: async () => {
       const editBiltyIds = existingInvItems.map((i) => i.bilty_id);
-      const hasFilter = !!(partyId || vehicleId || vehicleNumber);
+      const hasFilter = selectedPartyIds.length > 0 || selectedVehicleIds.length > 0;
 
       if (!isEditMode && !hasFilter) return [];
 
@@ -99,16 +104,6 @@ export default function CreateInvoice() {
             query = query.or(`status.eq.unbilled,id.in.(${editBiltyIds.join(",")})`);
           } else {
             query = query.eq("status", "unbilled");
-          }
-
-          if (vehicleId) {
-            query = query.eq("vehicle_id", vehicleId);
-          } else if (vehicleNumber) {
-            query = query.eq("vehicle_number", vehicleNumber);
-          }
-
-          if (partyId) {
-            query = query.or(`consignor_id.eq.${partyId},consignee_id.eq.${partyId}`);
           }
 
           if (invoiceDate) {
@@ -122,18 +117,23 @@ export default function CreateInvoice() {
       return allData.filter((b) => {
         if (editBiltyIds.includes(b.id)) return true;
 
-        if (partyId) {
+        if (selectedPartyIds.length > 0) {
           const partyMatch =
-            b.consignor_id === partyId ||
-            b.consignee_id === partyId ||
-            (partyName && (b.consignor_name === partyName || b.consignee_name === partyName));
+            selectedPartyIds.some(
+              (id) => b.consignor_id === id || b.consignee_id === id,
+            ) ||
+            selectedPartyNames.some(
+              (name) => b.consignor_name === name || b.consignee_name === name,
+            );
           if (!partyMatch) return false;
         }
 
-        if (vehicleId || vehicleNumber) {
+        if (selectedVehicleIds.length > 0) {
           const vehicleMatch =
-            (vehicleId && b.vehicle_id === vehicleId) ||
-            (vehicleNumber && b.vehicle_number?.toUpperCase() === vehicleNumber.toUpperCase());
+            selectedVehicleIds.some((id) => b.vehicle_id === id) ||
+            selectedVehicleNumbers.some(
+              (num) => b.vehicle_number?.toUpperCase() === num.toUpperCase(),
+            );
           if (!vehicleMatch) return false;
         }
 
@@ -150,11 +150,8 @@ export default function CreateInvoice() {
     if (existingInvoice) {
       setInvoiceNumber(existingInvoice.invoice_number);
       setInvoiceDate(existingInvoice.invoice_date);
-      setPartyId(existingInvoice.party_id || "");
-      setPartyName(existingInvoice.party_name || "");
-      setPartyGstin(existingInvoice.party_gstin || "");
-      setVehicleId(existingInvoice.vehicle_id || "");
-      setVehicleNumber(existingInvoice.vehicle_number || "");
+      setSelectedPartyIds(existingInvoice.party_id ? [existingInvoice.party_id] : []);
+      setSelectedVehicleIds(existingInvoice.vehicle_id ? [existingInvoice.vehicle_id] : []);
       setPaymentStatus(existingInvoice.payment_status);
       setAmountPaid(existingInvoice.amount_paid || 0);
       const igst = Number(existingInvoice.igst_rate || 0);
@@ -183,13 +180,11 @@ export default function CreateInvoice() {
     }
   }, [settings, isEditMode]);
 
-  const handlePartySelect = (id: string) => {
-    setPartyId(id);
-    const p = parties.find((p) => p.id === id);
-    if (p) {
-      setPartyName(p.name);
-      setPartyGstin(p.gstin || "");
-      if (settings?.state_code && p.gstin) {
+  const handlePartyChange = (ids: string[]) => {
+    setSelectedPartyIds(ids);
+    if (ids.length === 1 && settings) {
+      const p = parties.find((p) => p.id === ids[0]);
+      if (p?.gstin && settings.state_code) {
         const partyState = p.gstin.substring(0, 2);
         setGstType(partyState === settings.state_code ? "cgst_sgst" : "igst");
       }
@@ -197,10 +192,8 @@ export default function CreateInvoice() {
     if (!isEditMode) setSelectedBilties([]);
   };
 
-  const handleVehicleSelect = (id: string) => {
-    setVehicleId(id);
-    const v = vehicles.find((v) => v.id === id);
-    if (v) setVehicleNumber(v.vehicle_number);
+  const handleVehicleChange = (ids: string[]) => {
+    setSelectedVehicleIds(ids);
     if (!isEditMode) setSelectedBilties([]);
   };
 
@@ -209,10 +202,28 @@ export default function CreateInvoice() {
     if (!isEditMode) setSelectedBilties([]);
   };
 
+  const clearAllFilters = () => {
+    setSelectedPartyIds([]);
+    setSelectedVehicleIds([]);
+    if (!isEditMode) setSelectedBilties([]);
+  };
+
   const biltyTableTitle = (() => {
     const parts: string[] = [];
-    if (partyName) parts.push(partyName);
-    if (vehicleNumber) parts.push(vehicleNumber);
+    if (selectedPartyNames.length > 0) {
+      parts.push(
+        selectedPartyNames.length <= 2
+          ? selectedPartyNames.join(", ")
+          : `${selectedPartyNames.length} parties`,
+      );
+    }
+    if (selectedVehicleNumbers.length > 0) {
+      parts.push(
+        selectedVehicleNumbers.length <= 2
+          ? selectedVehicleNumbers.join(", ")
+          : `${selectedVehicleNumbers.length} vehicles`,
+      );
+    }
     if (parts.length === 0) return "Select Unbilled Bilties";
     return `Unbilled Bilties — ${parts.join(" · ")}`;
   })();
@@ -236,14 +247,16 @@ export default function CreateInvoice() {
       if (!invoiceNumber.trim()) throw new Error("Invoice number is required");
       if (selectedBilties.length === 0) throw new Error("Select at least one bilty");
 
+      const primaryParty = parties.find((p) => p.id === selectedPartyIds[0]);
+
       const invoicePayload = {
         invoice_number: invoiceNumber,
         invoice_date: invoiceDate,
-        party_id: partyId || null,
-        party_name: partyName || null,
-        party_gstin: partyGstin || null,
-        vehicle_id: vehicleId || null,
-        vehicle_number: vehicleNumber || null,
+        party_id: selectedPartyIds[0] || null,
+        party_name: selectedPartyNames.join(", ") || null,
+        party_gstin: primaryParty?.gstin || null,
+        vehicle_id: selectedVehicleIds[0] || null,
+        vehicle_number: selectedVehicleNumbers.join(", ") || null,
         subtotal,
         cgst_rate: gstType === "cgst_sgst" ? gstRate / 2 : 0,
         cgst_amount: cgstAmount,
@@ -352,9 +365,9 @@ export default function CreateInvoice() {
             <div className="space-y-2"><Label>Invoice Date</Label><Input type="date" value={invoiceDate} onChange={(e) => handleInvoiceDateChange(e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Party</Label>
-              <SelectWithAdd
-                value={partyId}
-                onValueChange={handlePartySelect}
+              <MultiSelectWithAdd
+                values={selectedPartyIds}
+                onValuesChange={handlePartyChange}
                 placeholder="Select party"
                 searchPlaceholder="Search party..."
                 items={parties.map((p) => ({ id: p.id, label: p.name }))}
@@ -371,9 +384,9 @@ export default function CreateInvoice() {
             </div>
             <div className="space-y-2">
               <Label>Vehicle</Label>
-              <SelectWithAdd
-                value={vehicleId}
-                onValueChange={handleVehicleSelect}
+              <MultiSelectWithAdd
+                values={selectedVehicleIds}
+                onValuesChange={handleVehicleChange}
                 placeholder="Select vehicle"
                 searchPlaceholder="Search vehicle..."
                 items={vehicles.map((v) => ({ id: v.id, label: v.vehicle_number }))}
@@ -388,7 +401,20 @@ export default function CreateInvoice() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Payment Status</Label>
+              <div className="flex items-center justify-between gap-2 min-h-5">
+                <Label>Payment Status</Label>
+                {hasActiveFilters && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={clearAllFilters}
+                  >
+                    Clear filters
+                  </Button>
+                )}
+              </div>
               <Select value={paymentStatus} onValueChange={setPaymentStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -429,7 +455,7 @@ export default function CreateInvoice() {
                 </TableCell></TableRow>
               ) : unbilledBilties.length === 0 ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  {!partyId && !vehicleId
+                  {!hasActiveFilters
                     ? "Select a party or vehicle above to load unbilled bilties"
                     : "No unbilled bilties match your selection"}
                 </TableCell></TableRow>
