@@ -146,6 +146,17 @@ export default function Reports() {
     return Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([month, amount]) => ({ month, amount }));
   }, [filteredBilties]);
 
+  const vehicleWiseData = useMemo(() => {
+    const acc: Record<string, { vehicle: string; total: number; trips: number }> = {};
+    for (const b of filteredBilties) {
+      const v = b.vehicle_number || "Unknown";
+      if (!acc[v]) acc[v] = { vehicle: v, total: 0, trips: 0 };
+      acc[v].total += Number(b.total_amount || 0);
+      acc[v].trips += 1;
+    }
+    return Object.values(acc).sort((a, b) => b.total - a.total);
+  }, [filteredBilties]);
+
   // --- Export helpers ---
   const exp = (headers: string[], data: any[][], title: string, filename: string, landscape = false) => ({
     excel: () => exportExcel(data, headers, filename),
@@ -591,17 +602,8 @@ export default function Reports() {
               <Table>
                 <TableHeader><TableRow><TableHead>Vehicle</TableHead><TableHead className="text-right">Trips</TableHead><TableHead className="text-right">Total Revenue</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {(() => {
-                    const vehicleWise = Object.values(filteredBilties.reduce((acc: Record<string, { vehicle: string; total: number; trips: number }>, b) => {
-                      const v = b.vehicle_number || "Unknown";
-                      if (!acc[v]) acc[v] = { vehicle: v, total: 0, trips: 0 };
-                      acc[v].total += Number(b.total_amount || 0);
-                      acc[v].trips += 1;
-                      return acc;
-                    }, {})).sort((a, b) => b.total - a.total);
-                    return vehicleWise.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No data</TableCell></TableRow> :
-                      vehicleWise.map(v => <TableRow key={v.vehicle}><TableCell className="font-medium">{v.vehicle}</TableCell><TableCell className="text-right">{v.trips}</TableCell><TableCell className="text-right">{formatINR(v.total)}</TableCell></TableRow>);
-                  })()}
+                  {vehicleWiseData.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No data</TableCell></TableRow> :
+                    vehicleWiseData.map(v => <TableRow key={v.vehicle}><TableCell className="font-medium">{v.vehicle}</TableCell><TableCell className="text-right">{v.trips}</TableCell><TableCell className="text-right">{formatINR(v.total)}</TableCell></TableRow>)}
                 </TableBody>
               </Table>
             </CardContent>

@@ -18,7 +18,7 @@ export async function fetchAllRows(
   let hasMore = true;
 
   while (hasMore) {
-    let query = supabase.from(table).select(options?.select || "*");
+    let query = supabase.from(table as any).select(options?.select || "*");
     
     if (options?.filters) {
       query = options.filters(query);
