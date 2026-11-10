@@ -146,6 +146,17 @@ export default function Reports() {
     return Object.entries(monthly).sort(([a], [b]) => a.localeCompare(b)).map(([month, amount]) => ({ month, amount }));
   }, [filteredBilties]);
 
+  const vehicleWiseData = useMemo(() => {
+    const acc: Record<string, { vehicle: string; total: number; trips: number }> = {};
+    for (const b of filteredBilties) {
+      const v = b.vehicle_number || "Unknown";
+      if (!acc[v]) acc[v] = { vehicle: v, total: 0, trips: 0 };
+      acc[v].total += Number(b.total_amount || 0);
+      acc[v].trips += 1;
+    }
+    return Object.values(acc).sort((a, b) => b.total - a.total);
+  }, [filteredBilties]);
+
   // --- Export helpers ---
   const exp = (headers: string[], data: any[][], title: string, filename: string, landscape = false) => ({
     excel: () => exportExcel(data, headers, filename),
