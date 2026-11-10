@@ -602,17 +602,8 @@ export default function Reports() {
               <Table>
                 <TableHeader><TableRow><TableHead>Vehicle</TableHead><TableHead className="text-right">Trips</TableHead><TableHead className="text-right">Total Revenue</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {(() => {
-                    const vehicleWise = (Object.values(filteredBilties.reduce((acc: Record<string, { vehicle: string; total: number; trips: number }>, b) => {
-                      const v = b.vehicle_number || "Unknown";
-                      if (!acc[v]) acc[v] = { vehicle: v, total: 0, trips: 0 };
-                      acc[v].total += Number(b.total_amount || 0);
-                      acc[v].trips += 1;
-                      return acc;
-                    }, {} as Record<string, { vehicle: string; total: number; trips: number }>)) as { vehicle: string; total: number; trips: number }[]).sort((a, b) => b.total - a.total);
-                    return vehicleWise.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No data</TableCell></TableRow> :
-                      vehicleWise.map(v => <TableRow key={v.vehicle}><TableCell className="font-medium">{v.vehicle}</TableCell><TableCell className="text-right">{v.trips}</TableCell><TableCell className="text-right">{formatINR(v.total)}</TableCell></TableRow>);
-                  })()}
+                  {vehicleWiseData.length === 0 ? <TableRow><TableCell colSpan={3} className="text-center py-8 text-muted-foreground">No data</TableCell></TableRow> :
+                    vehicleWiseData.map(v => <TableRow key={v.vehicle}><TableCell className="font-medium">{v.vehicle}</TableCell><TableCell className="text-right">{v.trips}</TableCell><TableCell className="text-right">{formatINR(v.total)}</TableCell></TableRow>)}
                 </TableBody>
               </Table>
             </CardContent>
