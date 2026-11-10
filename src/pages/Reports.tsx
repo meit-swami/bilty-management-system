@@ -592,7 +592,7 @@ export default function Reports() {
                 <TableHeader><TableRow><TableHead>Vehicle</TableHead><TableHead className="text-right">Trips</TableHead><TableHead className="text-right">Total Revenue</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {(() => {
-                    const vehicleWise = Object.values(filteredBilties.reduce((acc: Record<string, { vehicle: string; total: number; trips: number }>, b) => {
+                    const vehicleWise = (Object.values(filteredBilties.reduce((acc: Record<string, { vehicle: string; total: number; trips: number }>, b) => {
                       const v = b.vehicle_number || "Unknown";
                       if (!acc[v]) acc[v] = { vehicle: v, total: 0, trips: 0 };
                       acc[v].total += Number(b.total_amount || 0);
